@@ -1,0 +1,15 @@
+{
+  "name": "annotation-job-splitter-service",
+  "version": "0.0.0",
+  "description": "A service that splits annotation jobs into one task per targeted decision.",
+  "license": "MIT",
+  "author": "info@redpencil.io",
+  "type": "module",
+  "main": "app.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "mu-types": "git+https://github.com/rahien/mu-types.git"
+  }
+}
