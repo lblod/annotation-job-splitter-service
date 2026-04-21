@@ -9,6 +9,7 @@ import {
   uuid,
 } from "mu";
 import { Shape, Task } from "../types";
+import { requiresInputContainer } from "../util/config";
 
 const JOB_GRAPH =
   process.env.JOB_GRAPH || "http://mu.semte.ch/graphs/harvesting";
@@ -111,14 +112,18 @@ function taskToTriples(task: Task) {
     dcterms:modified ${now} ;
     adms:status ${sparqlEscapeUri(STATUS.SCHEDULED)} .`;
 
-  if (task.target) {
+  if (task.target || requiresInputContainer(task.parentJob)) {
     const icId = uuid();
     const icUri = DATA_CONTAINER_URI_BASE + icId;
     triples += `
       ${sparqlEscapeUri(task.uri)} task:inputContainer ${sparqlEscapeUri(icUri)} .
       ${sparqlEscapeUri(icUri)} a nfo:DataContainer ;
-        mu:uuid ${sparqlEscapeString(icId)} ;
-        task:hasResource ${sparqlEscapeUri(task.target)} .`;
+mu:uuid ${sparqlEscapeString(icId)} .`;
+
+    if (task.target) {
+      triples += `
+        ${sparqlEscapeUri(icUri)} task:hasResource ${sparqlEscapeUri(task.target)} .`;
+    }
   }
 
   return triples;

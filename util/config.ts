@@ -15,3 +15,10 @@ export function listTaskOperations(job: Job) {
     return jobOperations[job.operation]?.taskOperations;
   }
 }
+
+export function requiresInputContainer(job: Job) {
+  const jobOperations = config[job.type];
+  if (jobOperations) {
+    return !!jobOperations[job.operation]?.ensureInputContainer;
+  }
+}
