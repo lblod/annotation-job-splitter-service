@@ -3,6 +3,8 @@
 > [!Warning]
 > This service is currently under construction
 
+TODO: explain service
+
 ## Getting started
 TODO
 
@@ -10,4 +12,5 @@ TODO
 TODO
 
 ## API
-TODO
+### GET /health
+Returns `{ "status": "ok" }` if the service is running.
