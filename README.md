@@ -36,7 +36,46 @@ In the second snippet below, the node shape link to the job resource specifies a
 ```
 
 ## Getting started
-TODO
+### How to add the service to your application
+First, add the service to your application's `docker-compose.yml`. Note that the `config` volume is only necessary if you require a different configuration than the [default one](./config/config.ts). See the [configuration section](#configuration) for more information in writing a configuration file.
+
+```yaml
+  annotation-job-splitter:
+    image: lblod/annotation-job-splitter:x.y.z
+    # Optional volume for custom configuration
+    volumes:
+      - ../config/annotation-job-splitter:/config
+```
+
+Seconf, configure your application's [delta notifier](https://github.com/mu-semtech/delta-notifier/blob/master/README.md#L87) in to forward the appropriate delta messages to this service. For example, the following delta notifier configuration would send deltas involving resources of type `ext:AnnotationJob` to this service. If you use a custom configuration file, make sure to define such a rule for each job resources type you define.
+
+```js
+// delta notifier configuration
+export default [
+  {
+    match: {
+      predicate: {
+        type: "uri",
+        value: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+      },
+      object: {
+        type: "uri",
+        value: "http://mu.semte.ch/vocabularies/ext/AnnotationJob",
+      },
+    },
+    callback: {
+      method: "POST",
+      url: "http://annotation-job-splitter/delta",
+    },
+    options: {
+      resourceFormat: "v0.0.1", // Make sure to use this format, v0.0.0-genesis is NOT suported
+      gracePeriod: 1000,
+      ignoreFromSelf: true,
+      sendMatchesOnly: true,
+    },
+  },
+];
+```
 
 ## Configuration
 This service is configured in two ways. First, a configuration file must be provided that specifies which types of job resources should be processed and how. Second, some environment variables can be configured. The following subsections document each of these in turn.
