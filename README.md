@@ -3,7 +3,37 @@
 > [!Warning]
 > This service is currently under construction
 
-TODO: explain service
+The annotation job splitter service offers functionality to split jobs into multiple tasks depending on the resource(s) serving as target for a job. This service operates on delta message it receives when appropriate job resources are created.
+
+This service expects that the processed jobs specify the (kind of) input resources they concern as a SHACL node. This node either explicitly links to one or more resources, or specifies a type of resource. In the latter case a graph must be specified in which to search for appropriate resources.
+
+More specifically, this service can process graphs that satisfy either of the following structures. In either case, the custom `ext:shapeForTargets` predicate is used to link a job resources to its node shape. In the first snippet, the linked node shape explicitly specifies two resources that are inputs for this job. Note, that the service does **not** check whether these resources exist, this is the responsibility of the service that will execute the actual task(s).
+
+```ttl
+@prefix ext: <http://mu.semte.ch/vocabularies/ext/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+
+<job> a ext:some-job ;
+  ext:shapeForTargets <shape-with-target-nodes> .
+
+<shape-with-target-nodes> a sh:NodeShape ;
+  sh:targetNode <resource-1> ,
+    <resource-2> .
+```
+
+In the second snippet below, the node shape link to the job resource specifies an RDF resource type as its `sh:targetClass`. In this case the job itself must also specify a graph in which to look for such resources using the `ext:graphForTargets` predicate.
+
+```ttl
+@prefix ext: <http://mu.semte.ch/vocabularies/ext/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+
+<job> a ext:some-job ;
+  ext:shapeForTargets <shape-with-target-class> ;
+  ext:graphForTargets <graph-uri> .
+
+<shape-with-target-class> a sh:NodeShape ;
+  sh:targetClass <rdf-type> .
+```
 
 ## Getting started
 TODO
