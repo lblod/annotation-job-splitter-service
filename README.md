@@ -47,7 +47,7 @@ First, add the service to your application's `docker-compose.yml`. Note that the
       - ../config/annotation-job-splitter:/config
 ```
 
-Seconf, configure your application's [delta notifier](https://github.com/mu-semtech/delta-notifier/blob/master/README.md#L87) in to forward the appropriate delta messages to this service. For example, the following delta notifier configuration would send deltas involving resources of type `ext:AnnotationJob` to this service. If you use a custom configuration file, make sure to define such a rule for each job resources type you define.
+Second, configure your application's [delta notifier](https://github.com/mu-semtech/delta-notifier/blob/master/README.md#L87) in to forward the appropriate delta messages to this service. For example, the following delta notifier configuration would send deltas involving resources of type `ext:AnnotationJob` to this service. If you use a custom configuration file, make sure to define such a rule for each job resources type you define.
 
 ```js
 // delta notifier configuration
