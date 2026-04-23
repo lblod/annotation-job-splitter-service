@@ -2,23 +2,41 @@ import config from "../config/config";
 import { Job } from "../types";
 
 export function isConfiguredJobType(type: string) {
-  return Object.keys(config)?.includes(type);
+  return Object.keys(config.jobs)?.includes(type);
 }
 
 export function isConfiguredJobOperation(jobType: string, operation: string) {
-  return Object.keys(config[jobType])?.includes(operation);
+  return Object.keys(config.jobs[jobType])?.includes(operation);
+}
+
+function getJobOperations(type: string) {
+  return config.jobs[type];
 }
 
 export function listTaskOperations(job: Job) {
-  const jobOperations = config[job.type];
+  const jobOperations = getJobOperations(job.type);
   if (jobOperations) {
     return jobOperations[job.operation]?.taskOperations;
   }
 }
 
 export function requiresInputContainer(job: Job) {
-  const jobOperations = config[job.type];
+  const jobOperations = getJobOperations(job.type);
   if (jobOperations) {
     return !!jobOperations[job.operation]?.ensureInputContainer;
   }
+}
+
+export function targetShapePredicate(type: string) {
+  const jobOperations = getJobOperations(type);
+  return (
+    jobOperations.targetShapePredicate || config.defaultTargetShapePredicate
+  );
+}
+
+export function targetGraphPredicate(type: string) {
+  const jobOperations = getJobOperations(type);
+  return (
+    jobOperations.targetGraphPredicate || config.defaultTargetGraphPredicate
+  );
 }

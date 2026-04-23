@@ -83,21 +83,24 @@ This service is configured in two ways. First, a configuration file must be prov
 ### Configuration file
 The configuration specifies which types of jobs should be split into tasks by this service. This repository contains a default [configuration file](./config.config.ts) that can be overwritten to suite the application at hand.
 
-The configuration should export a single object. This object has a property for each type of job the service should split. Note that the key of a job property should be a string containing the full URI for the RDF type of the job.
+The configuration should export a single object. Providing a value for the `jobs` property is mandatory. This property specifies which types of job resources the service should split into tasks. For each job resource type it should specify a property with the type's full URI as key. Furthermore, you must also specify `defaultTargetShapePredicate` and `defaultTargetGraphPredicate` properties. These specify the predicates that are used to link jobs to their target shape and graph respectively.
 
 ```js
 export default {
-  "http://mu.semte.ch/vocabularies/ext/some-job": {
-    ...
+  jobs: {
+    "http://mu.semte.ch/vocabularies/ext/some-job": {
+      ...
+    },
+    "http://mu.semte.ch/vocabularies/ext/another-job": {
+      ...
+    },
   },
-  "http://mu.semte.ch/vocabularies/ext/another-job": {
-    ...
-  },
-  ...
+  defaultTargetShapePredicate: "http://predicate-for-target-shape",
+  defaultTargetGraphPredicate: "http://predicate-for-target-graph",
 }
 ```
 
-Each job type property contains one or properties specifying per job operation which kind of tasks should be created. Similar to above, the key for each property has to be the full URI for the job operation at hand.
+Each job type property contains one or more properties specifying per job operation which kind of tasks should be created. The key for each operation property has to be the full URI for the job operation at hand. Optionally, you can also specify `targetShapePredicate` and `targetGraphPredicate`. These properties specify which predicates are used for this job type for, respectively, the target shape and target graph. If specified these overwrite the `defaultTargetShapePredicate` and `defaultTargetGraphPredicate` for this job type.
 
 ```js
 "http://mu.semte.ch/vocabularies/ext/some-job": {
@@ -107,6 +110,9 @@ Each job type property contains one or properties specifying per job operation w
   "http://lblod.data.gift/id/jobs/concept/JobOperation/another-job-operation": {
     ...
   },
+  // Optional settings
+  targetShapePredicate: "http://predicate-for-target-shape",
+  targetGraphPredicate: "http://predicate-for-target-graph",
 }
 ```
 
@@ -126,45 +132,54 @@ Putting this all together might result in a configuration like the following.
 
 ```js
 export default {
-  // The service is configured to process two types of job resources. The first
-  // one is specified here, the second one further below.
-  "http://mu.semte.ch/vocabularies/ext/some-job": {
-    // For this job resource type, process job resources with either of the
-    // following two job operations.
-    "http://lblod.data.gift/id/jobs/concept/JobOperation/some-job-operation": {
-      // For each job instance of this type and with this operation: create two
-      // task resources, one for each of the following task operations.
-      taskOperations: [
-        "http://lblod.data.gift/id/jobs/concept/TaskOperation/first-task-operation",
-        "http://lblod.data.gift/id/jobs/concept/TaskOperation/second-task-operation",
-      ],
-      // Always create an input container for each created task, even if this
-      // container is empty. This can be used when the service that will execute
-      // a task expects an input container to be already linked to its tasks.
-      ensureInputContainer: true,
+  jobs: {
+    // The service is configured to process two types of job resources. The
+    // first one is specified here, the second one further below.
+    "http://mu.semte.ch/vocabularies/ext/some-job": {
+      // For this job resource type, process job resources with either of the
+      // following two job operations.
+      "http://lblod.data.gift/id/jobs/concept/JobOperation/some-job-operation": {
+        // For each job instance of this type and with this operation: create
+        // two task resources, one for each of the following task operations.
+        taskOperations: [
+          "http://lblod.data.gift/id/jobs/concept/TaskOperation/first-task-operation",
+          "http://lblod.data.gift/id/jobs/concept/TaskOperation/second-task-operation",
+        ],
+        // Always create an input container for each created task, even if this
+        // container is empty. This can be used when the service that will
+        // execute  a task expects an input container to be already linked to
+        // its tasks.
+        ensureInputContainer: true,
+      },
+      // The second job operation for `some-job` job resources.
+      "http://lblod.data.gift/id/jobs/concept/JobOperation/another-job-operation": {
+        // For each job instance with the above operation: create a single task
+        // for the operation below.
+        taskOperations: [
+          "http://lblod.data.gift/id/jobs/concept/TaskOperation/the-only-operation",
+        ],
+      },
+      // Configure type-specific target predicates
+      targetShapePredicate: "http://mu.semte.ch/vocabularies/ext/shapeForTargets",
+      targetGraphPredicate: "http://mu.semte.ch/vocabularies/ext/graphForTargets",
     },
-    // The second job operation for `some-job` job resources.
-    "http://lblod.data.gift/id/jobs/concept/JobOperation/another-job-operation": {
-      // For each job instance with the above operation: create a single task
-      // for the operation below.
-      taskOperations: [
-        "http://lblod.data.gift/id/jobs/concept/TaskOperation/the-only-operation",
-      ],
+    // The second job resource type.
+    "http://mu.semte.ch/vocabularies/ext/another-job": {
+      // For this type of job resource, we are only interested in jobs that have
+      // the following operation.
+      "http://lblod.data.gift/id/jobs/concept/JobOperation/a-job-operation": {
+        // Three tasks will be created for each processed job resource.
+        taskOperations: [
+          "http://lblod.data.gift/id/jobs/concept/TaskOperation/task-operation-one",
+          "http://lblod.data.gift/id/jobs/concept/TaskOperation/task-operation-two",
+          "http://lblod.data.gift/id/jobs/concept/TaskOperation/task-operation-three",
+        ],
+      },
     },
   },
-  // The second job resource type.
-  "http://mu.semte.ch/vocabularies/ext/another-job": {
-    // For this type of job resource, we are only interested in jobs that have
-    // the following operation.
-    "http://lblod.data.gift/id/jobs/concept/JobOperation/a-job-operation": {
-      // Three tasks will be created for each processed job resource.
-      taskOperations: [
-        "http://lblod.data.gift/id/jobs/concept/TaskOperation/task-operation-one",
-        "http://lblod.data.gift/id/jobs/concept/TaskOperation/task-operation-two",
-        "http://lblod.data.gift/id/jobs/concept/TaskOperation/task-operation-three",
-      ],
-    },
-  },
+  // Configure application-specific target predicates
+  defaultTargetShapePredicate: "http://example.org/target-shape",
+  defaultTargetGraphPredicate: "http://example.org/target-graph",
 };
 
 ```

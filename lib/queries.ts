@@ -9,7 +9,7 @@ import {
   uuid,
 } from "mu";
 import { Shape, Task } from "../types";
-import { requiresInputContainer } from "../util/config";
+import { requiresInputContainer, targetShapePredicate } from "../util/config";
 
 const JOB_GRAPH =
   process.env.JOB_GRAPH || "http://mu.semte.ch/graphs/harvesting";
@@ -29,14 +29,17 @@ const STATUS = {
   FAILED: "http://redpencil.data.gift/id/concept/JobStatus/failed",
 };
 
-export async function retrieveTargetShape(jobUri: string) {
+export async function retrieveTargetShape(
+  jobUri: string,
+  shapePredicate: string,
+) {
   const shape = await query(`PREFIX sh: <http://www.w3.org/ns/shacl#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     SELECT DISTINCT ?shape ?class ?node
     WHERE {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
-        ${sparqlEscapeUri(jobUri)} ext:shapeForTargets ?shape .
+        ${sparqlEscapeUri(jobUri)} ${sparqlEscapeUri(shapePredicate)} ?shape .
 
         OPTIONAL {
           ?shape sh:targetClass ?class .

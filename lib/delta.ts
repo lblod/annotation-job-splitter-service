@@ -1,13 +1,15 @@
 import { retrieveTargetShape } from "./queries";
 import { Changeset, Job, Triple } from "../types";
-import { isConfiguredJobType, isConfiguredJobOperation } from "../util/config";
+import {
+  isConfiguredJobType,
+  isConfiguredJobOperation,
+  targetGraphPredicate,
+  targetShapePredicate,
+} from "../util/config";
 
 const TYPE_PREDICATE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
-const JOB_PREDICATES = {
-  OPERATION: "http://redpencil.data.gift/vocabularies/tasks/operation",
-  TARGET_SHAPE: "http://mu.semte.ch/vocabularies/ext/shapeForTargets",
-  TARGET_GRAPH: "http://mu.semte.ch/vocabularies/ext/graphForTargets",
-};
+const OPERATION_PREDICATE =
+  "http://redpencil.data.gift/vocabularies/tasks/operation";
 
 export async function parseDelta(delta: Changeset[]) {
   const inserts = delta.flatMap((changeSet) => changeSet.inserts);
@@ -30,16 +32,13 @@ export async function parseDelta(delta: Changeset[]) {
       (triple) => triple.subject.value === uri,
     );
 
-    const operation = findValueForPredicate(
-      triplesForJob,
-      JOB_PREDICATES.OPERATION,
-    );
+    const operation = findValueForPredicate(triplesForJob, OPERATION_PREDICATE);
 
     if (isConfiguredJobOperation(type, operation)) {
       // NOTE (22/04/2026): We cannot rely on the shape being part of the
       // received delta message.  Therefore, we explicitly retrieve it from the
       // triplestore here.
-      const shape = await retrieveTargetShape(uri);
+      const shape = await retrieveTargetShape(uri, targetShapePredicate(type));
       if (shape) {
         jobs.push({
           uri: uri,
@@ -50,7 +49,7 @@ export async function parseDelta(delta: Changeset[]) {
           // graph.
           targetGraph: findValueForPredicate(
             triplesForJob,
-            JOB_PREDICATES.TARGET_GRAPH,
+            targetGraphPredicate(type),
           ),
         } as Job);
       } else {
