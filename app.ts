@@ -11,7 +11,7 @@ app.post(
   bodyParser.json({ limit: "50mb" }),
   async function (req, res) {
     try {
-      const jobs = parseDelta(req.body);
+      const jobs = await parseDelta(req.body);
       // TODO: process created jobs
       return res.status(200).send().end();
     } catch (error) {

@@ -13,6 +13,7 @@
     "mu-types": "git+https://github.com/rahien/mu-types.git"
   },
   "dependencies": {
+    "@lblod/mu-auth-sudo": "^1.1.0",
     "body-parser": "^2.2.2"
   }
 }

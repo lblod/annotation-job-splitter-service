@@ -1,3 +1,4 @@
+import { retrieveTargetShape } from "./queries";
 import { Changeset, Job, Triple } from "../types";
 import { isConfiguredJobType, isConfiguredJobOperation } from "../util/config";
 
@@ -8,7 +9,7 @@ const JOB_PREDICATES = {
   TARGET_GRAPH: "http://mu.semte.ch/vocabularies/ext/graphForTargets",
 };
 
-export function parseDelta(delta: Changeset[]): Job[] {
+export async function parseDelta(delta: Changeset[]) {
   const inserts = delta.flatMap((changeSet) => changeSet.inserts);
 
   const jobUris = inserts
@@ -35,23 +36,28 @@ export function parseDelta(delta: Changeset[]): Job[] {
     );
 
     if (isConfiguredJobOperation(type, operation)) {
-      jobs.push({
-        uri: uri,
-        type: type,
-        operation: operation,
-        // NOTE (22/04/2026): This assumes that each job has at most 1 target
-        // shape.
-        targetShape: findValueForPredicate(
-          triplesForJob,
-          JOB_PREDICATES.TARGET_SHAPE,
-        ),
-        // NOTE (22/04/2026): This assumes that each job has at most 1 target
-        // graph.
-        targetGraph: findValueForPredicate(
-          triplesForJob,
-          JOB_PREDICATES.TARGET_GRAPH,
-        ),
-      } as Job);
+      // NOTE (22/04/2026): We cannot rely on the shape being part of the
+      // received delta message.  Therefore, we explicitly retrieve it from the
+      // triplestore here.
+      const shape = await retrieveTargetShape(uri);
+      if (shape) {
+        jobs.push({
+          uri: uri,
+          type: type,
+          operation: operation,
+          targetShape: shape,
+          // NOTE (22/04/2026): This assumes that each job has at most 1 target
+          // graph.
+          targetGraph: findValueForPredicate(
+            triplesForJob,
+            JOB_PREDICATES.TARGET_GRAPH,
+          ),
+        } as Job);
+      } else {
+        console.log(
+          `>> INFO: Ignoring job ${uri} since no target shape node was found.`,
+        );
+      }
     } else {
       console.info(
         `>> INFO: Ignoring job ${uri} as its operation ${operation} is not configured for job type ${type}.`,
