@@ -9,6 +9,8 @@ TODO: explain service
 TODO
 
 ## Configuration
+This service is configured in two ways. First, a configuration file must be provided that specifies which types of job resources should be processed and how. Second, some environment variables can be configured. The following subsections document each of these in turn.
+
 ### Configuration file
 The configuration specifies which types of jobs should be split into tasks by this service. This repository contains a default [configuration file](./config.config.ts) that can be overwritten to suite the application at hand.
 
