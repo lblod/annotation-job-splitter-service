@@ -11,5 +11,8 @@
   },
   "devDependencies": {
     "mu-types": "git+https://github.com/rahien/mu-types.git"
+  },
+  "dependencies": {
+    "body-parser": "^2.2.2"
   }
 }

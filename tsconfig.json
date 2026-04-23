@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "types": ["mu-types"],
+    "target": "ES2016",
     "lib": ["ES2016"],
     "allowSyntheticDefaultImports": true
   },
