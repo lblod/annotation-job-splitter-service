@@ -34,3 +34,12 @@ export type Shape = {
   targetClass?: string;
   targetNodes?: string[];
 };
+
+export type Task = {
+  uri: string;
+  id: string;
+  parentJob: Job;
+  operation: string;
+  // NOTE (18/04/2026): Source that should be referred by the input container.
+  target?: string;
+};

@@ -1,5 +1,6 @@
 import bodyParser from "body-parser";
 import { app, errorHandler } from "mu";
+import { processJob } from "./lib/job";
 import { parseDelta } from "./lib/delta";
 
 app.get("/health", async function (_req, res) {
@@ -12,7 +13,10 @@ app.post(
   async function (req, res) {
     try {
       const jobs = await parseDelta(req.body);
-      // TODO: process created jobs
+      const tasks = (
+        await Promise.all(jobs.flatMap(async (job) => await processJob(job)))
+      ).flat();
+      // TODO: insert tasks in triplestore
       return res.status(200).send().end();
     } catch (error) {
       console.log(`\n>> ERROR: Something went wrong while processing a delta.`);

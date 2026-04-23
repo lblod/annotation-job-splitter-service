@@ -44,3 +44,15 @@ export async function retrieveTargetShape(jobUri: string) {
     targetNodes: nodes,
   } as Shape;
 }
+
+export async function retrieveResourcesFromGraph(type: string, graph: string) {
+  const resourceUris = await query(`
+    SELECT DISTINCT ?resource
+    WHERE {
+      GRAPH ${sparqlEscapeUri(graph)} {
+        ?resource a ${sparqlEscapeUri(type)} .
+      }
+    }`);
+
+  return resourceUris.results.bindings.map((binding) => binding.resource.value);
+}
