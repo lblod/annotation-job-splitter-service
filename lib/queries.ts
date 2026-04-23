@@ -77,6 +77,29 @@ export async function retrieveResourcesFromGraph(type: string, graph: string) {
   return resourceUris.results.bindings.map((binding) => binding.resource.value);
 }
 
+export const BATCH_SIZE = parseInt(process.env.BATCH_SIZE) || 100;
+export const SLEEP_BETWEEN_BATCHES =
+  parseInt(process.env.SLEEP_BETWEEN_BATCHES) || 1000;
+
+export async function batchedInsertTasks(...tasks: Task[]) {
+  // NOTE (20/04/2026): For consistency with other services we opted to use
+  // `BATCH_SIZE` as environment variable to specify the maximum number of
+  // triples to insert at once.  Per task 9 triples (5 triples if the task has
+  // no target) will be inserted.  The following uses this to split the received
+  // tasks into smaller batches thereby ensuring each task is fully contained
+  // within a single batch so we do not insert incomplete tasks.
+  const tasksPerBatch = Math.ceil(BATCH_SIZE / 10);
+  for (let i = 0; i < tasks.length; i += tasksPerBatch) {
+    const tasksBatch = tasks.slice(i, i + tasksPerBatch);
+    console.info(
+      `>> INFO: Inserting tasks ${i} to ${i + tasksBatch.length - 1} out of ${tasks.length}`,
+    );
+    await insertTasks(...tasksBatch);
+
+    if (i + tasksPerBatch < tasks.length) await sleep();
+  }
+}
+
 function taskToTriples(task: Task) {
   const now = sparqlEscapeDateTime(new Date());
 
@@ -119,5 +142,12 @@ async function insertTasks(...tasks: Task[]) {
     await update(insert);
   } catch (e) {
     throw new Error(`${e.message}\n\nQuery that caused error:\n${insert}`);
+  }
+}
+
+async function sleep() {
+  if (SLEEP_BETWEEN_BATCHES > 0) {
+    console.info(`>> INFO: Sleeping for ${SLEEP_BETWEEN_BATCHES} ms.`);
+    return new Promise((resolve) => setTimeout(resolve, SLEEP_BETWEEN_BATCHES));
   }
 }
