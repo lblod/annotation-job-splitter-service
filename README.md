@@ -93,6 +93,11 @@ export default {
 
 ```
 
+### Environment variables
+| Name                  | Description                                                                | Default value                                   |
+|-----------------------|----------------------------------------------------------------------------|-------------------------------------------------|
+| JOB_GRAPH             | The graph in which the service will look for jobs and insert created tasks | "http://mu.semte.ch/graphs/harvesting"          |
+| DATA_CONTAINER_BASE   | The base URI to use for newly created input container resources.           | "http://redpencil.data.gift/id/dataContainers/" |
 ## API
 ### GET /health
 Returns `{ "status": "ok" }` if the service is running.
