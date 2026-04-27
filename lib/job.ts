@@ -30,10 +30,7 @@ export async function processJob(job: Job) {
     );
     return tasks;
   } else {
-    console.info(
-      `>> INFO: Ignoring job ${job.uri} as no targets were found for it.`,
-    );
-    return;
+    throw new Error(`No targets found for job ${job.uri}.`);
   }
 }
 
