@@ -2,24 +2,11 @@
 // specific graphs, e.g. to retrieve the correct resources.  It is currently not
 // advised to mix sudo-queries and scopes.
 import { querySudo as query, updateSudo as update } from "@lblod/mu-auth-sudo";
-import {
-  sparqlEscapeDateTime,
-  sparqlEscapeString,
-  sparqlEscapeUri,
-  uuid,
-} from "mu";
-import { Shape, Task } from "../types";
-import { requiresInputContainer } from "../util/config";
+import { sparqlEscapeDateTime, sparqlEscapeString, sparqlEscapeUri } from "mu";
+import { InputContainer, Shape, Task } from "../types";
 
 const JOB_GRAPH =
   process.env.JOB_GRAPH || "http://mu.semte.ch/graphs/harvesting";
-
-// NOTE (18/04/2026): This is the base that is also used in the resources
-// configuration.  The job/task data model ion gitbook uses
-// `.../data-container/` instead.
-const DATA_CONTAINER_URI_BASE =
-  process.env.DATA_CONTAINER_BASE ||
-  "http://redpencil.data.gift/id/dataContainers/";
 
 const STATUS = {
   PREPARING: "http://redpencil.data.gift/id/concept/JobStatus/preparing",
@@ -108,25 +95,25 @@ export async function batchedInsertTasks(...tasks: Task[]) {
 function taskToTriples(task: Task) {
   const now = sparqlEscapeDateTime(new Date());
 
-  let triples = `${sparqlEscapeUri(task.uri)} a task:Task ;
+  const triples = `${sparqlEscapeUri(task.uri)} a task:Task ;
     mu:uuid ${sparqlEscapeString(task.id)} ;
     dcterms:isPartOf ${sparqlEscapeUri(task.parentJob.uri)} ;
     task:operation ${sparqlEscapeUri(task.operation)} ;
     dcterms:created ${now} ;
     dcterms:modified ${now} ;
-    adms:status ${sparqlEscapeUri(STATUS.SCHEDULED)} .`;
+    adms:status ${sparqlEscapeUri(STATUS.SCHEDULED)} ;
+    task:inputContainer ${sparqlEscapeUri(task.target.uri)} .
 
-  const icId = uuid();
-  const icUri = DATA_CONTAINER_URI_BASE + icId;
-  triples += `
-      ${sparqlEscapeUri(task.uri)} task:inputContainer ${sparqlEscapeUri(icUri)} .
-      ${sparqlEscapeUri(icUri)} a nfo:DataContainer ;
-mu:uuid ${sparqlEscapeString(icId)} .`;
-
-  triples += `
-        ${sparqlEscapeUri(icUri)} task:hasResource ${sparqlEscapeUri(task.target)} .`;
+    ${inputContainerToTriples(task.target)}
+  `;
 
   return triples;
+}
+
+function inputContainerToTriples(container: InputContainer) {
+  return `${sparqlEscapeUri(container.uri)} a nfo:DataContainer ;
+    mu:uuid ${sparqlEscapeString(container.id)} ;
+    task:hasResource ${sparqlEscapeUri(container.resource)} .`;
 }
 
 async function insertTasks(...tasks: Task[]) {

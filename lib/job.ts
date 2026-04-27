@@ -3,7 +3,10 @@ import { uuid } from "mu";
 import { retrieveResourcesFromGraph } from "./queries";
 import { listTaskOperations } from "../util/config";
 
-const TASK_URI_PREFIX = "http://redpencil.data.gift/id/task/";
+const RESOURCE_BASE = {
+  TASK: "http://redpencil.data.gift/id/task/",
+  DATA_CONTAINER: "http://redpencil.data.gift/id/dataContainers/",
+};
 
 export async function processJob(job: Job) {
   const taskOperations: string[] = listTaskOperations(job);
@@ -60,15 +63,24 @@ function createTask(parentJob: Job, operation: string, target: string) {
   if (target) {
     const id = uuid();
     return {
-      uri: TASK_URI_PREFIX + id,
+      uri: RESOURCE_BASE.TASK + id,
       id: id,
       parentJob: parentJob,
       operation: operation,
-      target: target,
+      target: createInputContainer(target),
     } as Task;
   } else {
     throw new Error(
       `Could not create task for job ${parentJob.uri} with task operation ${operation} due to missing target.`,
     );
   }
+}
+
+function createInputContainer(target: string) {
+  const id = uuid();
+  return {
+    uri: RESOURCE_BASE.DATA_CONTAINER + id,
+    id: id,
+    resource: target,
+  };
 }
