@@ -62,8 +62,9 @@ export async function retrieveTargetShape(
 
   return {
     uri: shape.results.bindings[0].shape?.value,
-    // NOTE (17/04/2026): Currently only a single target class can be defined in
-    // the frontend.
+    // NOTE (17/04/2026): Currently only a single target class can be specified
+    // in the frontend.  To simplify the service's initial implementation we do
+    // not support multiple target classes yet.
     targetClass: classes ? classes[0] : undefined,
     targetNodes: nodes,
   } as Shape;
