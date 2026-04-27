@@ -45,8 +45,9 @@ async function listTargets(job: Job) {
   // `targetClass` as well as `targetNodes`.  Should both be specified, the
   // `targetNodes` will simply be ignored.
   if (shape.targetClass) {
-    // NOTE (22/04/2026): Should we consider the situation where no target graph
-    // is specified? It that case one could just search in ALL graphs.
+    // NOTE (22/04/2026): This assumes that a target graph is always specified.
+    // Otherwise, the called function will fail trying to escape an undefined
+    // graph URI.
     targets = await retrieveResourcesFromGraph(
       shape.targetClass,
       job.targetGraph,
