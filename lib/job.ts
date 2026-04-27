@@ -60,12 +60,18 @@ async function listTargets(job: Job) {
 }
 
 function createTask(parentJob: Job, operation: string, target: string) {
-  const id = uuid();
-  return {
-    uri: TASK_URI_PREFIX + id,
-    id: id,
-    parentJob: parentJob,
-    operation: operation,
-    target: target,
-  } as Task;
+  if (target) {
+    const id = uuid();
+    return {
+      uri: TASK_URI_PREFIX + id,
+      id: id,
+      parentJob: parentJob,
+      operation: operation,
+      target: target,
+    } as Task;
+  } else {
+    throw new Error(
+      `Could not create task for job ${parentJob.uri} with task operation ${operation} due to missing target.`,
+    );
+  }
 }
