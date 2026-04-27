@@ -9,7 +9,7 @@ import {
   uuid,
 } from "mu";
 import { Shape, Task } from "../types";
-import { requiresInputContainer, targetShapePredicate } from "../util/config";
+import { requiresInputContainer } from "../util/config";
 
 const JOB_GRAPH =
   process.env.JOB_GRAPH || "http://mu.semte.ch/graphs/harvesting";
