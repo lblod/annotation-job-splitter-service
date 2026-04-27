@@ -116,19 +116,15 @@ function taskToTriples(task: Task) {
     dcterms:modified ${now} ;
     adms:status ${sparqlEscapeUri(STATUS.SCHEDULED)} .`;
 
-  if (task.target || requiresInputContainer(task.parentJob)) {
-    const icId = uuid();
-    const icUri = DATA_CONTAINER_URI_BASE + icId;
-    triples += `
+  const icId = uuid();
+  const icUri = DATA_CONTAINER_URI_BASE + icId;
+  triples += `
       ${sparqlEscapeUri(task.uri)} task:inputContainer ${sparqlEscapeUri(icUri)} .
       ${sparqlEscapeUri(icUri)} a nfo:DataContainer ;
 mu:uuid ${sparqlEscapeString(icId)} .`;
 
-    if (task.target) {
-      triples += `
+  triples += `
         ${sparqlEscapeUri(icUri)} task:hasResource ${sparqlEscapeUri(task.target)} .`;
-    }
-  }
 
   return triples;
 }

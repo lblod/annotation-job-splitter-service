@@ -20,13 +20,6 @@ export function listTaskOperations(job: Job) {
   }
 }
 
-export function requiresInputContainer(job: Job) {
-  const jobOperations = getJobOperations(job.type);
-  if (jobOperations) {
-    return !!jobOperations[job.operation]?.ensureInputContainer;
-  }
-}
-
 export function targetShapePredicate(type: string) {
   const jobOperations = getJobOperations(type);
   return (

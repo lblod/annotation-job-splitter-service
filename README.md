@@ -116,7 +116,7 @@ Each job type property contains one or more properties specifying per job operat
 }
 ```
 
-Finally, each operation property specifies a list of one or more task operations for which tasks should be created. Each task operation must be specified as its full URI. Furthermore, an `ensureInputContainer`  property can be set to a truthy value if any created task must be linked to an input container resources, irrelevant of whether there is an associated input resource.
+Finally, each operation property specifies a list of one or more task operations for which tasks should be created. Each task operation must be specified as its full URI.
 
 ```js
 "http://lblod.data.gift/id/jobs/concept/JobOperation/some-job-operation": {
@@ -124,7 +124,6 @@ Finally, each operation property specifies a list of one or more task operations
     "http://lblod.data.gift/id/jobs/concept/TaskOperation/first-task-operation",
     "http://lblod.data.gift/id/jobs/concept/TaskOperation/second-task-operation",
   ],
-  ensureInputContainer: true, // optional property
 },
 ```
 
@@ -145,11 +144,6 @@ export default {
           "http://lblod.data.gift/id/jobs/concept/TaskOperation/first-task-operation",
           "http://lblod.data.gift/id/jobs/concept/TaskOperation/second-task-operation",
         ],
-        // Always create an input container for each created task, even if this
-        // container is empty. This can be used when the service that will
-        // execute  a task expects an input container to be already linked to
-        // its tasks.
-        ensureInputContainer: true,
       },
       // The second job operation for `some-job` job resources.
       "http://lblod.data.gift/id/jobs/concept/JobOperation/another-job-operation": {

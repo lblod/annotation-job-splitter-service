@@ -6,7 +6,6 @@ export default {
           taskOperations: [
             "http://lblod.data.gift/id/jobs/concept/TaskOperation/codelist-matching/annotate",
           ],
-          ensureInputContainer: true,
         },
       "http://lblod.data.gift/id/jobs/concept/JobOperation/codelist-matching/evaluation":
         {
