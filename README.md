@@ -170,7 +170,7 @@ export default {
 | Name                  | Description                                                                | Default value                                   |
 |-----------------------|----------------------------------------------------------------------------|-------------------------------------------------|
 | JOB_GRAPH             | The graph in which the service will look for jobs and insert created tasks | "http://mu.semte.ch/graphs/harvesting"          |
-| BATCH_SIZE            | The maximum number of triples inserted in a single query.                  | 100                                             |
+| BATCH_SIZE            | The maximum number of triples inserted in a single query.                  | 120                                             |
 | SLEEP_BETWEEN_BATCHES | The time, in milliseconds, to sleep in between inserting two batches       | 1000                                            |
 
 ## API

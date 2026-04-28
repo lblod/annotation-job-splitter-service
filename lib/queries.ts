@@ -5,12 +5,12 @@ import { querySudo as query, updateSudo as update } from "@lblod/mu-auth-sudo";
 import { sparqlEscapeDateTime, sparqlEscapeString, sparqlEscapeUri } from "mu";
 import { InputContainer, Job, Shape, Task } from "../types";
 import {
-  BATCH_SIZE,
   JOB_GRAPH,
   SLEEP_BETWEEN_BATCHES,
   STATUS,
   TARGET_GRAPH_PREDICATE,
   TARGET_SHAPE_PREDICATE,
+  TASKS_PER_BATCH,
 } from "../util/constants";
 
 // Adapted from the Job controller service
@@ -172,23 +172,20 @@ export async function retrieveResourcesFromGraph(type: string, graph: string) {
   return resourceUris.results.bindings.map((binding) => binding.resource.value);
 }
 
-export async function batchedInsertTasks(...tasks: Task[]) {
-  // NOTE (20/04/2026): For consistency with other services we opted to use
-  // `BATCH_SIZE` as environment variable to specify the maximum number of
-  // triples to insert at once.  Per task 9 triples (5 triples if the task has
-  // no target) will be inserted.  The following uses this to split the received
-  // tasks into smaller batches thereby ensuring each task is fully contained
-  // within a single batch so we do not insert incomplete tasks.
-  const tasksPerBatch = Math.ceil(BATCH_SIZE / 10);
-  for (let i = 0; i < tasks.length; i += tasksPerBatch) {
-    const tasksBatch = tasks.slice(i, i + tasksPerBatch);
+export async function batchedInsertTasks(inputTask, outputTasks) {
+  for (let i = 0; i < outputTasks.length; i += TASKS_PER_BATCH) {
+    const tasksBatch = outputTasks.slice(i, i + TASKS_PER_BATCH);
     console.info(
-      `>> INFO: Inserting tasks ${i} to ${i + tasksBatch.length - 1} out of ${tasks.length}`,
+      `\n>> INFO: Inserting tasks ${i} to ${i + tasksBatch.length - 1} out of ${outputTasks.length} for input task ${inputTask.uri}`,
     );
     await insertTasks(...tasksBatch);
 
-    if (i + tasksPerBatch < tasks.length) await sleep();
+    if (i + TASKS_PER_BATCH < outputTasks.length) await sleep();
   }
+
+  // Update the status of the input tasks as all output tasks are inserted
+  await updateTaskStatus(inputTask, STATUS.SUCCESS);
+  console.info(`\n>> INFO: Completed task ${inputTask.uri}`);
 }
 
 function taskToTriples(task: Task) {
@@ -201,6 +198,7 @@ function taskToTriples(task: Task) {
     dcterms:created ${now} ;
     dcterms:modified ${now} ;
     adms:status ${sparqlEscapeUri(STATUS.SCHEDULED)} ;
+    task:index ${sparqlEscapeString(task.index.toString())} ;
     task:inputContainer ${sparqlEscapeUri(task.target.uri)} .
 
     ${inputContainerToTriples(task.target)}
@@ -240,5 +238,37 @@ async function sleep() {
   if (SLEEP_BETWEEN_BATCHES > 0) {
     console.info(`>> INFO: Sleeping for ${SLEEP_BETWEEN_BATCHES} ms.`);
     return new Promise((resolve) => setTimeout(resolve, SLEEP_BETWEEN_BATCHES));
+  }
+}
+
+export async function updateTaskStatus(task: Task, newStatus: string) {
+  const now = sparqlEscapeDateTime(new Date());
+  const insert = `PREFIX adms: <http://www.w3.org/ns/adms#>
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    DELETE {
+      GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
+        ?task adms:status ?status ;
+              dcterms:modified ?modified .
+      }
+    }
+    INSERT {
+      GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
+        ?task adms:status ${sparqlEscapeUri(newStatus)} ;
+              dcterms:modified ${now} .
+      }
+    }
+    WHERE {
+      GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
+        VALUES ?task {
+          ${sparqlEscapeUri(task.uri)}
+        }
+        ?task adms:status ?status .
+        OPTIONAL { ?task dcterms:modified ?modified . }
+      }
+    }`;
+  try {
+    await update(insert);
+  } catch (e) {
+    throw new Error(`${e.message}\n\nQuery that caused error:\n${insert}`);
   }
 }
