@@ -124,7 +124,10 @@ export async function retrieveTargetShape(uri: string) {
     SELECT DISTINCT ?shape ?class ?node
     WHERE {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
-        ${sparqlEscapeUri(uri)} a sh:NodeShape .
+        VALUES ?shape {
+          ${sparqlEscapeUri(uri)}
+        }
+        ?shape a sh:NodeShape .
 
         OPTIONAL {
           ?shape sh:targetClass ?class .

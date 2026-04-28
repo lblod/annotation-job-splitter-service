@@ -1,8 +1,7 @@
 import bodyParser from "body-parser";
 import { app, errorHandler } from "mu";
-import { processJob } from "./lib/job";
+import { processTask } from "./lib/task";
 import { parseDelta } from "./lib/delta";
-import { batchedInsertTasks } from "./lib/queries";
 
 app.get("/health", async function (_req, res) {
   res.send({ status: "ok" });
@@ -13,10 +12,12 @@ app.post(
   bodyParser.json({ limit: "50mb" }),
   async function (req, res, next) {
     try {
-      const tasks = await parseDelta(req.body);
-      // const tasks = (
-      //   await Promise.all(jobs.flatMap(async (job) => await processJob(job)))
-      // ).flat();
+      const inputTasks = await parseDelta(req.body);
+      const outputTasks = (
+        await Promise.all(
+          inputTasks.map(async (task) => await processTask(task)),
+        )
+      ).flat();
       // // NOTE (22/04/2026): Do not await here as this can take a long time,
       // // e.g. when creating tasks for all decisions in a given graph.
       // batchedInsertTasks(...tasks);

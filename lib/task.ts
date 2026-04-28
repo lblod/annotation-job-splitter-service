@@ -1,39 +1,26 @@
 import { Job, Task } from "../types";
 import { uuid } from "mu";
 import { retrieveResourcesFromGraph } from "./queries";
-import { listTaskOperations } from "../util/config";
+import { getNextOperation } from "../util/config";
 
 const RESOURCE_BASE = {
   TASK: "http://redpencil.data.gift/id/task/",
   DATA_CONTAINER: "http://redpencil.data.gift/id/dataContainers/",
 };
 
-export async function processJob(job: Job) {
-  const taskOperations: string[] = listTaskOperations(job);
-  if (!taskOperations || taskOperations.length === 0) {
-    console.info(
-      `\n>> INFO: Ignoring job ${job.uri} as its operation ${job.operation} is not configured for job type ${job.type}.\n`,
-    );
-    return;
-  }
+export async function processTask(task: Task) {
+  const nextOperation = getNextOperation(task);
+  if (nextOperation) {
+    const nextIndex = task.index + 1;
 
-  // NOTE (17/04/2026): Assume we might support creating multiple tasks per
-  // job and target (class or node).  This allows to easily map all targets to
-  // each task operation.
-  const cartesian = (...a) =>
-    a.reduce(
-      (acc, current) => acc.flatMap((d) => current.map((e) => [d, e].flat())),
-      [[]],
+    const targets = await listTargets(task.parentJob);
+    return targets.map((target) =>
+      createTask(task.parentJob, nextOperation, target, nextIndex),
     );
-
-  const targets = await listTargets(job);
-  if (targets && targets.length > 0) {
-    const tasks: Task[] = cartesian(targets, taskOperations).map(
-      ([target, taskOp]) => createTask(job, taskOp, target),
-    );
-    return tasks;
   } else {
-    throw new Error(`No targets found for job ${job.uri}.`);
+    throw new Error(
+      `Could not process task ${task.uri} as no next operation is configured.`,
+    );
   }
 }
 
@@ -59,12 +46,18 @@ async function listTargets(job: Job) {
   return targets;
 }
 
-function createTask(parentJob: Job, operation: string, target: string) {
+function createTask(
+  parentJob: Job,
+  operation: string,
+  target: string,
+  index: number,
+) {
   if (target) {
     const id = uuid();
     return {
       uri: RESOURCE_BASE.TASK + id,
       id: id,
+      index: index,
       parentJob: parentJob,
       operation: operation,
       target: createInputContainer(target),
