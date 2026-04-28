@@ -62,7 +62,7 @@ First, add the service to your application's `docker-compose.yml`. Note that the
       - ../config/annotation-job-splitter:/config
 ```
 
-Second, configure your application's [delta notifier](https://github.com/mu-semtech/delta-notifier/blob/master/README.md#L87) in to forward the appropriate delta messages to this service. For example, the following delta notifier configuration would send deltas involving resources of type `ext:AnnotationJob` to this service. If you use a custom configuration file, make sure to define such a rule for each job resources type you define.
+Second, configure your application's [delta notifier](https://github.com/mu-semtech/delta-notifier/blob/master/README.md#L87) to forward the appropriate delta messages to this service. The simplest configuration would be to forward a delta message each time an `adms:status` is set to the `scheduled` status used for tasks:
 
 ```js
 // delta notifier configuration
@@ -71,11 +71,11 @@ export default [
     match: {
       predicate: {
         type: "uri",
-        value: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+        value: "http://www.w3.org/ns/adms#status",
       },
       object: {
         type: "uri",
-        value: "http://mu.semte.ch/vocabularies/ext/AnnotationJob",
+        value: "http://redpencil.data.gift/id/concept/JobStatus/scheduled",
       },
     },
     callback: {
