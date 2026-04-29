@@ -1,11 +1,6 @@
 import config from "../config/config";
 import { Task } from "../types";
 
-const DEFAULT_PREDICATES = {
-  TARGET_SHAPE: "http://mu.semte.ch/vocabularies/ext/shapeForTargets",
-  TARGET_GRAPH: "http://mu.semte.ch/vocabularies/ext/graphForTargets",
-};
-
 function getJobConfiguration(operation: string) {
   return config.jobConfiguration[operation];
 }
@@ -29,14 +24,6 @@ export function getNextOperation(task: Task) {
     );
     return taskConfiguration?.nextOperation;
   }
-}
-
-export function targetShapePredicate() {
-  return config.targetShapePredicate || DEFAULT_PREDICATES.TARGET_SHAPE;
-}
-
-export function targetGraphPredicate() {
-  return config.targetGraphPredicate || DEFAULT_PREDICATES.TARGET_GRAPH;
 }
 
 type TaskConfiguration = {

@@ -4,17 +4,12 @@
 import { querySudo as query, updateSudo as update } from "@lblod/mu-auth-sudo";
 import { sparqlEscapeDateTime, sparqlEscapeString, sparqlEscapeUri } from "mu";
 import { InputContainer, Shape, Task } from "../types";
-
-const JOB_GRAPH =
-  process.env.JOB_GRAPH || "http://mu.semte.ch/graphs/harvesting";
-
-const STATUS = {
-  PREPARING: "http://redpencil.data.gift/id/concept/JobStatus/preparing",
-  BUSY: "http://redpencil.data.gift/id/concept/JobStatus/busy",
-  SCHEDULED: "http://redpencil.data.gift/id/concept/JobStatus/scheduled",
-  SUCCESS: "http://redpencil.data.gift/id/concept/JobStatus/success",
-  FAILED: "http://redpencil.data.gift/id/concept/JobStatus/failed",
-};
+import {
+  BATCH_SIZE,
+  JOB_GRAPH,
+  SLEEP_BETWEEN_BATCHES,
+  STATUS,
+} from "../util/constants";
 
 export async function retrieveTargetShape(
   jobUri: string,
@@ -68,10 +63,6 @@ export async function retrieveResourcesFromGraph(type: string, graph: string) {
 
   return resourceUris.results.bindings.map((binding) => binding.resource.value);
 }
-
-export const BATCH_SIZE = parseInt(process.env.BATCH_SIZE) || 100;
-export const SLEEP_BETWEEN_BATCHES =
-  parseInt(process.env.SLEEP_BETWEEN_BATCHES) || 1000;
 
 export async function batchedInsertTasks(...tasks: Task[]) {
   // NOTE (20/04/2026): For consistency with other services we opted to use
