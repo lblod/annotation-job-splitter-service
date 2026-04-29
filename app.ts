@@ -22,7 +22,14 @@ app.post(
       // NOTE (22/04/2026): Do not await here as this can take a long time,
       // e.g. when creating tasks for all decisions in a given graph.
       outputTasks.forEach((tasks) =>
-        batchedInsertTasks(tasks.inputTask, tasks.outputTasks),
+        batchedInsertTasks(tasks.inputTask, tasks.outputTasks).catch(
+          (error) => {
+            console.log(
+              `\n>> ERROR: Something went wrong while inserting tasks for ${tasks.inputTask.uri}`,
+            );
+            console.error(error);
+          },
+        ),
       );
       return res.status(200).send().end();
     } catch (error) {
