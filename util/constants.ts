@@ -3,6 +3,8 @@ import config from "../config/config";
 export const JOB_GRAPH =
   process.env.JOB_GRAPH || "http://mu.semte.ch/graphs/harvesting";
 
+export const TASK_STATUS_PREDICATE = "http://www.w3.org/ns/adms#status";
+
 export const STATUS = {
   PREPARING: "http://redpencil.data.gift/id/concept/JobStatus/preparing",
   BUSY: "http://redpencil.data.gift/id/concept/JobStatus/busy",

@@ -1,73 +1,34 @@
-import { retrieveTargetShape } from "./queries";
-import { Changeset, Job, Triple } from "../types";
-import {
-  isConfiguredJobType,
-  isConfiguredJobOperation,
-  targetGraphPredicate,
-  targetShapePredicate,
-} from "../util/config";
-
-const TYPE_PREDICATE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
-const OPERATION_PREDICATE =
-  "http://redpencil.data.gift/vocabularies/tasks/operation";
+import { retrieveTaskData } from "./queries";
+import { Changeset, Task } from "../types";
+import { isConfiguredTask } from "../util/config";
+import { STATUS, TASK_STATUS_PREDICATE } from "../util/constants";
 
 export async function parseDelta(delta: Changeset[]) {
   const inserts = delta.flatMap((changeSet) => changeSet.inserts);
 
-  const jobUris = inserts
+  // NOTE (28/04/2026): We limit ourselves to extracting potential input task
+  // URIs from the delta message.  While the delta message might contain more
+  // relevant data, e.g. task operation, we make no such assumption and will
+  // query for additional data.
+  const taskUris = inserts
     .filter(
-      (triple) =>
-        triple.predicate.value === TYPE_PREDICATE &&
-        isConfiguredJobType(triple.object.value),
+      (quad) =>
+        quad.predicate.value === TASK_STATUS_PREDICATE &&
+        quad.object.value === STATUS.SCHEDULED,
     )
-    .map((triple) => {
-      return { uri: triple.subject.value, type: triple.object.value };
-    });
+    .map((quad) => quad.subject.value);
 
-  let jobs: Job[] = [];
-  // NOTE (22/04/2026): If a job resource has multiple types that are
-  // configured, this can lead to multiple Job objects for the same resource.
-  for (const { uri, type } of jobUris) {
-    const triplesForJob = inserts.filter(
-      (triple) => triple.subject.value === uri,
-    );
-
-    const operation = findValueForPredicate(triplesForJob, OPERATION_PREDICATE);
-
-    if (isConfiguredJobOperation(type, operation)) {
-      // NOTE (22/04/2026): We cannot rely on the shape being part of the
-      // received delta message.  Therefore, we explicitly retrieve it from the
-      // triplestore here.
-      const shape = await retrieveTargetShape(uri, targetShapePredicate(type));
-      if (shape) {
-        jobs.push({
-          uri: uri,
-          type: type,
-          operation: operation,
-          targetShape: shape,
-          // NOTE (22/04/2026): This assumes that each job has at most 1 target
-          // graph.
-          targetGraph: findValueForPredicate(
-            triplesForJob,
-            targetGraphPredicate(type),
-          ),
-        } as Job);
-      } else {
-        console.log(
-          `>> INFO: Ignoring job ${uri} since no target shape node was found.`,
-        );
-      }
+  const tasks: Task[] = [];
+  for (const taskUri of taskUris) {
+    const task = await retrieveTaskData(taskUri);
+    if (task && isConfiguredTask(task)) {
+      tasks.push(task);
     } else {
       console.info(
-        `>> INFO: Ignoring job ${uri} as its operation ${operation} is not configured for job type ${type}.`,
+        `\n>> INFO: Ignoring task ${taskUri} as it does not match a configured task`,
       );
     }
   }
 
-  return jobs;
-}
-
-function findValueForPredicate(triples: Triple[], predicate: string) {
-  return triples.find((triple) => triple.predicate.value === predicate)?.object
-    .value;
+  return tasks;
 }

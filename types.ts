@@ -23,7 +23,6 @@ export type Changeset = {
 
 export type Job = {
   uri: string;
-  type: string;
   operation: string;
   targetShape?: Shape;
   targetGraph?: string;
@@ -37,10 +36,11 @@ export type Shape = {
 
 export type Task = {
   uri: string;
-  id: string;
+  id?: string;
+  index: number;
   parentJob: Job;
   operation: string;
-  target: InputContainer;
+  target?: InputContainer;
 };
 
 export type InputContainer = {
