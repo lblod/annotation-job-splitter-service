@@ -96,49 +96,38 @@ export default [
 This service is configured in two ways. First, a configuration file must be provided that specifies which types of job resources should be processed and how. Second, some environment variables can be configured. The following subsections document each of these in turn.
 
 ### Configuration file
-The configuration specifies which types of jobs should be split into tasks by this service. This repository contains a default [configuration file](./config.config.ts) that can be overwritten to suite the application at hand.
+The configuration specifies which types of jobs should be split into tasks by this service. This repository contains a default [configuration file](./config.config.ts) that can be overwritten to suite the application at hand. Note, this service's configuration is structured similarly to that of the [job-controller](https://github.com/lblod/job-controller-service) service.
 
-The configuration should export a single object. Providing a value for the `jobs` property is mandatory. This property specifies which types of job resources the service should split into tasks. For each job resource type it should specify a property with the type's full URI as key. Furthermore, you must also specify `defaultTargetShapePredicate` and `defaultTargetGraphPredicate` properties. These specify the predicates that are used to link jobs to their target shape and graph respectively.
+The configuration should export a single object. It has to contain at least a mandatory `jobConfiguration` property. This property in turn contains properties specifying which combinations of jobs and tasks should be processed. Each contained property has as key a full URI of a job operation. Tasks that are not part of a job with either of these operations will be ignored. Furthermore, you can configure custom predicates linking jobs to their target shapes and graphs using `targetShapePredicate` and `targetGraphPredicate` respectively. This structure is illustrated in the following snippet:
 
 ```js
 export default {
-  jobs: {
-    "http://mu.semte.ch/vocabularies/ext/some-job": {
+  jobConfiguration: {
+    "http://lblod.data.gift/id/jobs/concept/JobOperation/some-job-operation": {
       ...
     },
-    "http://mu.semte.ch/vocabularies/ext/another-job": {
+    "http://lblod.data.gift/id/jobs/concept/JobOperation/another-job-operation": {
       ...
     },
   },
-  defaultTargetShapePredicate: "http://predicate-for-target-shape",
-  defaultTargetGraphPredicate: "http://predicate-for-target-graph",
-}
-```
-
-Each job type property contains one or more properties specifying per job operation which kind of tasks should be created. The key for each operation property has to be the full URI for the job operation at hand. Optionally, you can also specify `targetShapePredicate` and `targetGraphPredicate`. These properties specify which predicates are used for this job type for, respectively, the target shape and target graph. If specified these overwrite the `defaultTargetShapePredicate` and `defaultTargetGraphPredicate` for this job type.
-
-```js
-"http://mu.semte.ch/vocabularies/ext/some-job": {
-  "http://lblod.data.gift/id/jobs/concept/JobOperation/some-job-operation": {
-    ...
-  },
-  "http://lblod.data.gift/id/jobs/concept/JobOperation/another-job-operation": {
-    ...
-  },
-  // Optional settings
+  // optional settings to overwrite the default values
   targetShapePredicate: "http://predicate-for-target-shape",
   targetGraphPredicate: "http://predicate-for-target-graph",
 }
 ```
 
-Finally, each operation property specifies a list of one or more task operations for which tasks should be created. Each task operation must be specified as its full URI.
+Each job configuration property has to specify one or more task configuration properties. Such a task configuration contains the task operations of relevant tasks and maps them to follow-up operation. As before the the operations must be specified as full URIs. For example, the following snippet configures one task configuration for a job. It essentially means that when the service receives a task that (1) is part of job with operation `"http://lblod.data.gift/id/jobs/concept/JobOperation/some-job-operation"`; and (2) has as task operation the value for `currentOperation`.
+Then a follow-up task should be created with as task operation the value of `nextOperation`.
 
 ```js
 "http://lblod.data.gift/id/jobs/concept/JobOperation/some-job-operation": {
-  taskOperations: [
-    "http://lblod.data.gift/id/jobs/concept/TaskOperation/first-task-operation",
-    "http://lblod.data.gift/id/jobs/concept/TaskOperation/second-task-operation",
-  ],
+  taskConfiguration: [
+    {
+      currentOperation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/operation-for-input-task",
+      nextOpertation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/operation-for-created-tasks"
+    },
+  ...
+  ]
 },
 ```
 
@@ -146,49 +135,33 @@ Putting this all together might result in a configuration like the following.
 
 ```js
 export default {
-  jobs: {
-    // The service is configured to process two types of job resources. The
-    // first one is specified here, the second one further below.
-    "http://mu.semte.ch/vocabularies/ext/some-job": {
-      // For this job resource type, process job resources with either of the
-      // following two job operations.
-      "http://lblod.data.gift/id/jobs/concept/JobOperation/some-job-operation": {
-        // For each job instance of this type and with this operation: create
-        // two task resources, one for each of the following task operations.
-        taskOperations: [
-          "http://lblod.data.gift/id/jobs/concept/TaskOperation/first-task-operation",
-          "http://lblod.data.gift/id/jobs/concept/TaskOperation/second-task-operation",
-        ],
-      },
-      // The second job operation for `some-job` job resources.
-      "http://lblod.data.gift/id/jobs/concept/JobOperation/another-job-operation": {
-        // For each job instance with the above operation: create a single task
-        // for the operation below.
-        taskOperations: [
-          "http://lblod.data.gift/id/jobs/concept/TaskOperation/the-only-operation",
-        ],
-      },
-      // Configure type-specific target predicates
-      targetShapePredicate: "http://mu.semte.ch/vocabularies/ext/shapeForTargets",
-      targetGraphPredicate: "http://mu.semte.ch/vocabularies/ext/graphForTargets",
+  jobConfiguration: {
+    // This service is configured to process tasks for two kinds of jobs.
+    "http://lblod.data.gift/id/jobs/concept/JobOperation/some-job-operation": {
+      taskConfiguration: [
+        // For this kind of job, support processing two kinds of tasks
+        {
+          currentOperation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/operation-for-input-task",
+          nextOpertation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/operation-for-created-tasks"
+        },
+        {
+          currentOperation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/another-task-operation",
+          nextOpertation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/next-for-another-task"
+        },
+      ]
     },
-    // The second job resource type.
-    "http://mu.semte.ch/vocabularies/ext/another-job": {
-      // For this type of job resource, we are only interested in jobs that have
-      // the following operation.
-      "http://lblod.data.gift/id/jobs/concept/JobOperation/a-job-operation": {
-        // Three tasks will be created for each processed job resource.
-        taskOperations: [
-          "http://lblod.data.gift/id/jobs/concept/TaskOperation/task-operation-one",
-          "http://lblod.data.gift/id/jobs/concept/TaskOperation/task-operation-two",
-          "http://lblod.data.gift/id/jobs/concept/TaskOperation/task-operation-three",
-        ],
-      },
+    "http://lblod.data.gift/id/jobs/concept/JobOperation/another-job-operation": {
+      taskConfiguration: [
+        {
+          currentOperation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/some-operation",
+          nextOpertation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/another-operation"
+        },
+      ]
     },
   },
-  // Configure application-specific target predicates
-  defaultTargetShapePredicate: "http://example.org/target-shape",
-  defaultTargetGraphPredicate: "http://example.org/target-graph",
+  // optional settings to overwrite the default values
+  targetShapePredicate: "http://example.org/shape",
+  targetGraphPredicate: "http://example.org/graph",
 };
 
 ```

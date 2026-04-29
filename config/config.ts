@@ -1,28 +1,40 @@
 export default {
-  jobs: {
-    "http://mu.semte.ch/vocabularies/ext/AnnotationJob": {
-      "http://lblod.data.gift/id/jobs/concept/JobOperation/codelist-matching/training":
-        {
-          taskOperations: [
-            "http://lblod.data.gift/id/jobs/concept/TaskOperation/codelist-matching/annotate",
-          ],
-        },
-      "http://lblod.data.gift/id/jobs/concept/JobOperation/codelist-matching/evaluation":
-        {
-          taskOperations: [
-            "http://lblod.data.gift/id/jobs/concept/TaskOperation/codelist-matching/annotate",
-          ],
-        },
-      "http://lblod.data.gift/id/jobs/concept/JobOperation/ner-and-nel-annotations":
-        {
-          taskOperations: [
-            "http://lblod.data.gift/id/jobs/concept/TaskOperation/eli-translation",
-          ],
-        },
-    },
+  jobConfiguration: {
+    "http://lblod.data.gift/id/jobs/concept/JobOperation/codelist-matching/training":
+      {
+        taskConfiguration: [
+          {
+            currentOperation:
+              "http://lblod.data.gift/id/jobs/concept/TaskOperation/split-task",
+            nextOperation:
+              "http://lblod.data.gift/id/jobs/concept/TaskOperation/codelist-matching/annotate",
+          },
+        ],
+      },
+    "http://lblod.data.gift/id/jobs/concept/JobOperation/codelist-matching/evaluation":
+      {
+        taskConfiguration: [
+          {
+            currentOperation:
+              "http://lblod.data.gift/id/jobs/concept/TaskOperation/split-task",
+            nextOperation:
+              "http://lblod.data.gift/id/jobs/concept/TaskOperation/codelist-matching/annotate",
+          },
+        ],
+      },
+    "http://lblod.data.gift/id/jobs/concept/JobOperation/ner-and-nel-annotations":
+      {
+        taskConfiguration: [
+          {
+            currentOperation:
+              "http://lblod.data.gift/id/jobs/concept/TaskOperation/split-task",
+            nextOperation:
+              "http://lblod.data.gift/id/jobs/concept/TaskOperation/eli-translation",
+          },
+        ],
+      },
   },
-  defaultTargetShapePredicate:
-    "http://mu.semte.ch/vocabularies/ext/shapeForTargets",
-  defaultTargetGraphPredicate:
-    "http://mu.semte.ch/vocabularies/ext/graphForTargets",
+  // optional
+  targetShapePredicate: "http://mu.semte.ch/vocabularies/ext/shapeForTargets",
+  targetGraphPredicate: "http://mu.semte.ch/vocabularies/ext/graphForTargets",
 };

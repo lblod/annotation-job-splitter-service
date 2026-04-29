@@ -1,35 +1,45 @@
 import config from "../config/config";
-import { Job } from "../types";
+import { Task } from "../types";
 
-export function isConfiguredJobType(type: string) {
-  return Object.keys(config.jobs)?.includes(type);
+const DEFAULT_PREDICATES = {
+  TARGET_SHAPE: "http://mu.semte.ch/vocabularies/ext/shapeForTargets",
+  TARGET_GRAPH: "http://mu.semte.ch/vocabularies/ext/graphForTargets",
+};
+
+function getJobConfiguration(operation: string) {
+  return config.jobConfiguration[operation];
 }
 
-export function isConfiguredJobOperation(jobType: string, operation: string) {
-  return Object.keys(config.jobs[jobType])?.includes(operation);
-}
-
-function getJobOperations(type: string) {
-  return config.jobs[type];
-}
-
-export function listTaskOperations(job: Job) {
-  const jobOperations = getJobOperations(job.type);
-  if (jobOperations) {
-    return jobOperations[job.operation]?.taskOperations;
+export function isConfiguredTask(task: Task) {
+  const jobConfiguration = getJobConfiguration(task.parentJob.operation);
+  if (jobConfiguration) {
+    return jobConfiguration.taskConfiguration.some(
+      (taskConfig: TaskConfiguration) =>
+        taskConfig.currentOperation === task.operation,
+    );
   }
 }
 
-export function targetShapePredicate(type: string) {
-  const jobOperations = getJobOperations(type);
-  return (
-    jobOperations.targetShapePredicate || config.defaultTargetShapePredicate
-  );
+export function getNextOperation(task: Task) {
+  const jobConfiguration = getJobConfiguration(task.parentJob.operation);
+  if (jobConfiguration) {
+    const taskConfiguration = jobConfiguration.taskConfiguration.find(
+      (taskConfig: TaskConfiguration) =>
+        taskConfig.currentOperation === task.operation,
+    );
+    return taskConfiguration?.nextOperation;
+  }
 }
 
-export function targetGraphPredicate(type: string) {
-  const jobOperations = getJobOperations(type);
-  return (
-    jobOperations.targetGraphPredicate || config.defaultTargetGraphPredicate
-  );
+export function targetShapePredicate() {
+  return config.targetShapePredicate || DEFAULT_PREDICATES.TARGET_SHAPE;
 }
+
+export function targetGraphPredicate() {
+  return config.targetGraphPredicate || DEFAULT_PREDICATES.TARGET_GRAPH;
+}
+
+type TaskConfiguration = {
+  currentOperation: string;
+  nextOperation: string;
+};
