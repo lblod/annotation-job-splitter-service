@@ -71,7 +71,7 @@ export async function retrieveTaskData(uri: string) {
       } as Task;
     } else {
       console.info(
-        `\n>> INFO: ignoring task ${uri} as it is not linked to a job`,
+        `\n>> INFO: Ignoring task ${uri} as it is not linked to a (correct) job`,
       );
     }
   }
@@ -98,7 +98,7 @@ async function retrieveJob(uri: string) {
     }`);
 
   const jobData = parseResult(job)[0];
-  const shape = jobData.targetShape
+  const shape = jobData?.targetShape
     ? await retrieveTargetShape(jobData.targetShape)
     : undefined;
 
@@ -111,7 +111,7 @@ async function retrieveJob(uri: string) {
     } as Job;
   } else {
     console.info(
-      `\n>> INFO: ignoring job ${uri} as there is no linked node shape`,
+      `\n>> INFO: ${uri} is not a job resource or a job resource without a target shape`,
     );
   }
 }

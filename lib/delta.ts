@@ -25,7 +25,7 @@ export async function parseDelta(delta: Changeset[]) {
       tasks.push(task);
     } else {
       console.info(
-        `\n>> INFO: Ignoring task ${taskUri} as it does not match a configured task`,
+        `\n>> INFO: Ignoring task ${taskUri} as its resource does not match a configured task`,
       );
     }
   }
