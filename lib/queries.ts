@@ -4,6 +4,7 @@
 import { querySudo as query, updateSudo as update } from "@lblod/mu-auth-sudo";
 import { sparqlEscapeDateTime, sparqlEscapeString, sparqlEscapeUri } from "mu";
 import { InputContainer, Job, Shape, Task } from "../types";
+import { isConfiguredTaskOperation } from "../util/config";
 import {
   JOB_GRAPH,
   SLEEP_BETWEEN_BATCHES,
@@ -57,7 +58,9 @@ export async function retrieveTaskData(uri: string) {
     }`);
 
   const taskData = parseResult(task)[0];
-  if (taskData) {
+  const mightBeInterestingTask =
+    taskData?.operation && isConfiguredTaskOperation(taskData.operation);
+  if (mightBeInterestingTask) {
     const job = await retrieveJob(taskData.job);
     if (job) {
       return {
@@ -71,10 +74,6 @@ export async function retrieveTaskData(uri: string) {
         `\n>> INFO: ignoring task ${uri} as it is not linked to a job`,
       );
     }
-  } else {
-    console.info(
-      `\n>> INFO: ignoring ${uri} as it is not a suitable task resource`,
-    );
   }
 }
 
