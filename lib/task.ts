@@ -15,7 +15,7 @@ export async function processTask(task: Task) {
 
     const targets = await listTargets(task.parentJob);
     return targets.map((target) =>
-      createTask(task.parentJob, nextOperation, target, nextIndex),
+      createTask(task.parentJob, nextOperation, target, nextIndex, task.uri),
     );
   } else {
     throw new Error(
@@ -51,6 +51,7 @@ function createTask(
   operation: string,
   target: string,
   index: number,
+  dependsOn: string,
 ) {
   if (target) {
     const id = uuid();
@@ -60,6 +61,7 @@ function createTask(
       index: index,
       parentJob: parentJob,
       operation: operation,
+      dependsOn: dependsOn,
       target: createInputContainer(target),
     } as Task;
   } else {
