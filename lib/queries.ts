@@ -196,6 +196,7 @@ function taskToTriples(task: Task) {
     task:operation ${sparqlEscapeUri(task.operation)} ;
     dcterms:created ${now} ;
     dcterms:modified ${now} ;
+    cogs:dependsOn ${sparqlEscapeUri(task.dependsOn)} ;
     adms:status ${sparqlEscapeUri(STATUS.SCHEDULED)} ;
     task:index ${sparqlEscapeString(task.index.toString())} ;
     task:inputContainer ${sparqlEscapeUri(task.target.uri)} .
@@ -220,6 +221,7 @@ async function insertTasks(...tasks: Task[]) {
     PREFIX dcterms: <http://purl.org/dc/terms/>
     PREFIX nfo: <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#>
     PREFIX adms: <http://www.w3.org/ns/adms#>
+    PREFIX cogs: <http://vocab.deri.ie/cogs#>
     INSERT DATA {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
         ${triplesToInsert}

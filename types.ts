@@ -41,6 +41,7 @@ export type Task = {
   parentJob: Job;
   operation: string;
   target?: InputContainer;
+  dependsOn: string;
 };
 
 export type InputContainer = {
