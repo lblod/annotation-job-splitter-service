@@ -1,6 +1,6 @@
 {
   "name": "annotation-job-splitter-service",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A service that splits tasks for shaped jobs into one task per target resource.",
   "license": "MIT",
   "author": "info@redpencil.io",
