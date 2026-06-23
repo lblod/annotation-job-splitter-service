@@ -1,11 +1,11 @@
-import { Job, Task } from "../types";
-import { uuid } from "mu";
-import { retrieveResourcesFromGraph } from "./queries";
-import { getNextOperation } from "../util/config";
+import { Job, Task } from '../types';
+import { uuid } from 'mu';
+import { retrieveResourcesFromGraph } from './queries';
+import { getNextOperation } from '../util/config';
 
 const RESOURCE_BASE = {
-  TASK: "http://redpencil.data.gift/id/task/",
-  DATA_CONTAINER: "http://redpencil.data.gift/id/dataContainers/",
+  TASK: 'http://redpencil.data.gift/id/task/',
+  DATA_CONTAINER: 'http://redpencil.data.gift/id/dataContainers/',
 };
 
 export async function processTask(task: Task) {
@@ -39,8 +39,12 @@ async function listTargets(job: Job) {
       shape.targetClass,
       job.targetGraph,
     );
-  } else {
+  } else if (shape.targetNodes) {
     targets = shape.targetNodes;
+  } else {
+    throw new Error(
+      `Misconfigured target shape, either targetClass or targetNodes is required`,
+    );
   }
 
   return targets;

@@ -1,10 +1,19 @@
 // NOTE (18/04/2026): Using sudo queries as we need to be able to read from
 // specific graphs, e.g. to retrieve the correct resources.  It is currently not
 // advised to mix sudo-queries and scopes.
-import { querySudo as query, updateSudo as update } from "@lblod/mu-auth-sudo";
-import { sparqlEscapeDateTime, sparqlEscapeString, sparqlEscapeUri } from "mu";
-import { InputContainer, Job, Shape, Task } from "../types";
-import { isConfiguredTaskOperation } from "../util/config";
+import {
+  querySudo as query,
+  SPARQLQueryResult,
+  updateSudo as update,
+} from '@lblod/mu-auth-sudo';
+import {
+  sparqlEscapeDateTime,
+  sparqlEscapeString,
+  sparqlEscapeUri,
+  SparqlResponse,
+} from 'mu';
+import { InputContainer, Job, Shape, Task } from '../types';
+import { isConfiguredTaskOperation } from '../util/config';
 import {
   JOB_GRAPH,
   SLEEP_BETWEEN_BATCHES,
@@ -12,25 +21,31 @@ import {
   TARGET_GRAPH_PREDICATE,
   TARGET_SHAPE_PREDICATE,
   TASKS_PER_BATCH,
-} from "../util/constants";
+} from '../util/constants';
 
 // Adapted from the Job controller service
-function parseResult(result) {
+function parseResult<T extends string[]>(result: SPARQLQueryResult<T>) {
   if (!(result.results && result.results.bindings.length)) return [];
 
-  const bindingKeys = result.head.vars;
-  return result.results.bindings.map((row) => {
-    const obj = {};
+  const bindingKeys = result.head.vars as T[number][];
+  const bindings = result.results.bindings as unknown as Array<{
+    [Key in T[number]]: {
+      datatype: string;
+      value: any;
+    };
+  }>;
+  return bindings.map((row) => {
+    const obj = {} as { [Key in T[number]]: any };
     bindingKeys.forEach((key) => {
       if (
         row[key] &&
-        row[key].datatype == "http://www.w3.org/2001/XMLSchema#integer" &&
+        row[key].datatype == 'http://www.w3.org/2001/XMLSchema#integer' &&
         row[key].value
       ) {
         obj[key] = parseInt(row[key].value);
       } else if (
         row[key] &&
-        row[key].datatype == "http://www.w3.org/2001/XMLSchema#dateTime" &&
+        row[key].datatype == 'http://www.w3.org/2001/XMLSchema#dateTime' &&
         row[key].value
       ) {
         obj[key] = new Date(row[key].value);
@@ -57,7 +72,7 @@ export async function retrieveTaskData(uri: string) {
               task:operation ?operation .
     }`);
 
-  const taskData = parseResult(task)[0];
+  const taskData = parseResult(task!)[0];
   const mightBeInterestingTask =
     taskData?.operation && isConfiguredTaskOperation(taskData.operation);
   if (mightBeInterestingTask) {
@@ -97,7 +112,7 @@ async function retrieveJob(uri: string) {
       }
     }`);
 
-  const jobData = parseResult(job)[0];
+  const jobData = parseResult(job!)[0];
   const shape = jobData?.targetShape
     ? await retrieveTargetShape(jobData.targetShape)
     : undefined;
@@ -138,14 +153,14 @@ export async function retrieveTargetShape(uri: string) {
       }
     }`);
 
-  if (shape.results.bindings && shape.results.bindings.length) {
+  if (shape?.results?.bindings?.length) {
     const { classes, nodes } = shape.results.bindings.reduce(
       (acc, binding) => {
         if (binding.class?.value) acc.classes.push(binding.class?.value);
         if (binding.node?.value) acc.nodes.push(binding.node?.value);
         return acc;
       },
-      { classes: [], nodes: [] },
+      { classes: [] as string[], nodes: [] as string[] },
     );
 
     return {
@@ -168,10 +183,13 @@ export async function retrieveResourcesFromGraph(type: string, graph: string) {
       }
     }`);
 
-  return resourceUris.results.bindings.map((binding) => binding.resource.value);
+  return (
+    resourceUris?.results?.bindings.map((binding) => binding.resource.value) ||
+    []
+  );
 }
 
-export async function batchedInsertTasks(inputTask, outputTasks) {
+export async function batchedInsertTasks(inputTask: Task, outputTasks: Task[]) {
   for (let i = 0; i < outputTasks.length; i += TASKS_PER_BATCH) {
     const tasksBatch = outputTasks.slice(i, i + TASKS_PER_BATCH);
     console.info(
@@ -214,7 +232,7 @@ function inputContainerToTriples(container: InputContainer) {
 }
 
 async function insertTasks(...tasks: Task[]) {
-  const triplesToInsert = tasks.map((task) => taskToTriples(task)).join("\n");
+  const triplesToInsert = tasks.map((task) => taskToTriples(task)).join('\n');
 
   const insert = `PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -230,7 +248,7 @@ async function insertTasks(...tasks: Task[]) {
 
   try {
     await update(insert);
-  } catch (e) {
+  } catch (e: any) {
     throw new Error(`${e.message}\n\nQuery that caused error:\n${insert}`);
   }
 }
@@ -269,7 +287,7 @@ export async function updateTaskStatus(task: Task, newStatus: string) {
     }`;
   try {
     await update(insert);
-  } catch (e) {
+  } catch (e: any) {
     throw new Error(`${e.message}\n\nQuery that caused error:\n${insert}`);
   }
 }

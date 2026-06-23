@@ -24,23 +24,29 @@ export type Changeset = {
 export type Job = {
   uri: string;
   operation: string;
-  targetShape?: Shape;
-  targetGraph?: string;
+  targetShape: Shape;
+  targetGraph: string;
 };
 
-export type Shape = {
-  uri: string;
-  targetClass?: string;
-  targetNodes?: string[];
-};
+export type Shape =
+  | {
+      uri: string;
+      targetClass: string;
+      targetNodes?: never;
+    }
+  | {
+      uri: string;
+      targetNodes: string[];
+      targetClass?: never;
+    };
 
 export type Task = {
   uri: string;
-  id?: string;
+  id: string;
   index: number;
   parentJob: Job;
   operation: string;
-  target?: InputContainer;
+  target: InputContainer;
   dependsOn: string;
 };
 
@@ -48,4 +54,19 @@ export type InputContainer = {
   uri: string;
   id: string;
   resource: string;
+};
+
+export type JobConfig = {
+  jobConfiguration: {
+    [key: string]: {
+      taskConfiguration: [
+        {
+          currentOperation: string;
+          nextOperation: string;
+        },
+      ];
+    };
+  };
+  targetShapePredicate?: string;
+  targetGraphPredicate?: string;
 };
