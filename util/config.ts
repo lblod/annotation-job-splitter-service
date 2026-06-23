@@ -1,5 +1,5 @@
-import config from "../config/config";
-import { Task } from "../types";
+import config from '../config/config';
+import { Task, TaskConfiguration } from '../types';
 
 function getJobConfiguration(operation: string) {
   return config.jobConfiguration[operation];
@@ -23,18 +23,13 @@ export function isConfiguredTask(task: Task) {
   }
 }
 
-export function getNextOperation(task: Task) {
+export function getNextOperationConfig(task: Task) {
   const jobConfiguration = getJobConfiguration(task.parentJob.operation);
   if (jobConfiguration) {
     const taskConfiguration = jobConfiguration.taskConfiguration.find(
       (taskConfig: TaskConfiguration) =>
         taskConfig.currentOperation === task.operation,
     );
-    return taskConfiguration?.nextOperation;
+    return taskConfiguration;
   }
 }
-
-type TaskConfiguration = {
-  currentOperation: string;
-  nextOperation: string;
-};

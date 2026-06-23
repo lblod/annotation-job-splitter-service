@@ -7,7 +7,7 @@ import {
   updateSudo as update,
 } from '@lblod/mu-auth-sudo';
 import { sparqlEscapeDateTime, sparqlEscapeString, sparqlEscapeUri } from 'mu';
-import { InputContainer, Job, Shape, Task } from '../types';
+import { InputContainer, Job, Shape, Task, TaskConfiguration } from '../types';
 import { isConfiguredTaskOperation } from '../util/config';
 import {
   JOB_GRAPH,
@@ -171,14 +171,22 @@ export async function retrieveTargetShape(uri: string) {
   }
 }
 
-export async function retrieveResourcesFromGraph(type: string, graph: string) {
+export async function retrieveResourcesFromGraph(
+  type: string,
+  graph: string,
+  nextOperationConfig: TaskConfiguration,
+) {
+  const resourceFilter = nextOperationConfig.resourceFilter || '';
+  const resourceLimit = nextOperationConfig.resourceLimit || 0;
+  const limiter = resourceLimit > 0 ? `LIMIT ${resourceLimit}` : '';
   const resourceUris = await query(`
     SELECT DISTINCT ?resource
     WHERE {
       GRAPH ${sparqlEscapeUri(graph)} {
         ?resource a ${sparqlEscapeUri(type)} .
       }
-    }`);
+      ${resourceFilter}
+    } ${limiter}`);
 
   return (
     resourceUris?.results?.bindings.map((binding) => binding.resource.value) ||
