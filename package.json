@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@lblod/mu-auth-sudo": "^1.1.0",
-    "body-parser": "^2.2.2"
+    "body-parser": "^2.2.2",
+    "cron": "^4.4.0"
   }
 }

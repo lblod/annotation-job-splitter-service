@@ -15,8 +15,10 @@ import {
   STATUS,
   TARGET_GRAPH_PREDICATE,
   TARGET_SHAPE_PREDICATE,
+  TASK_STATUS_PREDICATE,
   TASKS_PER_BATCH,
 } from '../util/constants';
+import config from '../config/config';
 
 // Adapted from the Job controller service
 function parseResult<T extends string[]>(result: SPARQLQueryResult<T>) {
@@ -285,4 +287,29 @@ export async function updateTaskStatus(task: Task, newStatus: string) {
   } catch (e: any) {
     throw new Error(`${e.message}\n\nQuery that caused error:\n${insert}`);
   }
+}
+
+export async function findOpenTaskUris() {
+  const targetOperations = Object.values(config.jobConfiguration).flatMap(
+    (jobConfig) => {
+      return jobConfig.taskConfiguration.map((taskConfig) => {
+        return taskConfig.currentOperation;
+      });
+    },
+  );
+
+  const safeTargetOpsValues = targetOperations.map(sparqlEscapeUri).join('\n');
+
+  const result = await query(`
+    PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>    
+    SELECT DISTINCT ?task WHERE {
+      VALUES ?operation {
+        ${safeTargetOpsValues}
+      }
+      ?task ${sparqlEscapeUri(TASK_STATUS_PREDICATE)} ${sparqlEscapeUri(STATUS.SCHEDULED)} ;
+        task:operation ?operation .
+    }
+  `);
+
+  return result?.results.bindings?.map((b) => b.task.value) || [];
 }
