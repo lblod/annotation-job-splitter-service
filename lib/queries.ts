@@ -6,12 +6,7 @@ import {
   SPARQLQueryResult,
   updateSudo as update,
 } from '@lblod/mu-auth-sudo';
-import {
-  sparqlEscapeDateTime,
-  sparqlEscapeString,
-  sparqlEscapeUri,
-  SparqlResponse,
-} from 'mu';
+import { sparqlEscapeDateTime, sparqlEscapeString, sparqlEscapeUri } from 'mu';
 import { InputContainer, Job, Shape, Task } from '../types';
 import { isConfiguredTaskOperation } from '../util/config';
 import {
