@@ -1,22 +1,22 @@
-import bodyParser from 'body-parser';
-import { app, errorHandler } from 'mu';
-import { processTask } from './lib/task';
+import bodyParser from "body-parser";
+import { app, errorHandler } from "mu";
+import { processTask } from "./lib/task";
 import {
   batchedInsertTasks,
   findOpenTaskUris,
   retrieveTaskData,
-} from './lib/queries';
-import { CronJob } from 'cron';
-import { Task } from './types';
-import { isConfiguredTask } from './util/config';
+} from "./lib/queries";
+import { CronJob } from "cron";
+import { Task } from "./types";
+import { isConfiguredTask } from "./util/config";
 
-app.get('/health', async function (_req, res) {
-  res.send({ status: 'ok' });
+app.get("/health", async function (_req, res) {
+  res.send({ status: "ok" });
 });
 
 app.post(
-  '/delta',
-  bodyParser.json({ limit: '50mb' }),
+  "/delta",
+  bodyParser.json({ limit: "50mb" }),
   async function (_req, res) {
     // NOTE (23/06/2026): Don't check delta, simply look for open tasks left
     // to be processed. We're not doing too much here as the deltas will be
@@ -85,10 +85,10 @@ async function handleOpenTasks() {
 }
 
 CronJob.from({
-  cronTime: process.env.MISSED_DELTA_CRON || '27 */5 * * *',
+  cronTime: process.env.MISSED_DELTA_CRON || "27 */5 * * *",
   onTick: function () {
     handleOpenTasks().catch((e) => {
-      console.log('Something went wrong checking for missed deltas, ', e);
+      console.log("Something went wrong checking for missed deltas, ", e);
     });
   },
   start: true,
@@ -96,7 +96,7 @@ CronJob.from({
 
 handleOpenTasks().catch((e) => {
   console.log(
-    'Something went wrong checking for missed deltas on startup, ',
+    "Something went wrong checking for missed deltas on startup, ",
     e,
   );
   process.exit(1);

@@ -1,5 +1,5 @@
-import config from '../config/config';
-import { Task, TaskConfiguration } from '../types';
+import config from "../config/config";
+import { Task, TaskConfiguration } from "../types";
 
 function getJobConfiguration(operation: string) {
   return config.jobConfiguration[operation];

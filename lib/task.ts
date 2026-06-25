@@ -1,11 +1,11 @@
-import { Job, Task, TaskConfiguration } from '../types';
-import { uuid } from 'mu';
-import { retrieveResourcesFromGraph } from './queries';
-import { getNextOperationConfig } from '../util/config';
+import { Job, Task, TaskConfiguration } from "../types";
+import { uuid } from "mu";
+import { retrieveResourcesFromGraph } from "./queries";
+import { getNextOperationConfig } from "../util/config";
 
 const RESOURCE_BASE = {
-  TASK: 'http://redpencil.data.gift/id/task/',
-  DATA_CONTAINER: 'http://redpencil.data.gift/id/dataContainers/',
+  TASK: "http://redpencil.data.gift/id/task/",
+  DATA_CONTAINER: "http://redpencil.data.gift/id/dataContainers/",
 };
 
 export async function processTask(task: Task) {

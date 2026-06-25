@@ -5,10 +5,10 @@ import {
   querySudo as query,
   SPARQLQueryResult,
   updateSudo as update,
-} from '@lblod/mu-auth-sudo';
-import { sparqlEscapeDateTime, sparqlEscapeString, sparqlEscapeUri } from 'mu';
-import { InputContainer, Job, Shape, Task, TaskConfiguration } from '../types';
-import { isConfiguredTaskOperation } from '../util/config';
+} from "@lblod/mu-auth-sudo";
+import { sparqlEscapeDateTime, sparqlEscapeString, sparqlEscapeUri } from "mu";
+import { InputContainer, Job, Shape, Task, TaskConfiguration } from "../types";
+import { isConfiguredTaskOperation } from "../util/config";
 import {
   JOB_GRAPH,
   SLEEP_BETWEEN_BATCHES,
@@ -17,8 +17,8 @@ import {
   TARGET_SHAPE_PREDICATE,
   TASK_STATUS_PREDICATE,
   TASKS_PER_BATCH,
-} from '../util/constants';
-import config from '../config/config';
+} from "../util/constants";
+import config from "../config/config";
 
 // Adapted from the Job controller service
 function parseResult<T extends string[]>(result: SPARQLQueryResult<T>) {
@@ -36,13 +36,13 @@ function parseResult<T extends string[]>(result: SPARQLQueryResult<T>) {
     bindingKeys.forEach((key) => {
       if (
         row[key] &&
-        row[key].datatype == 'http://www.w3.org/2001/XMLSchema#integer' &&
+        row[key].datatype == "http://www.w3.org/2001/XMLSchema#integer" &&
         row[key].value
       ) {
         obj[key] = parseInt(row[key].value);
       } else if (
         row[key] &&
-        row[key].datatype == 'http://www.w3.org/2001/XMLSchema#dateTime' &&
+        row[key].datatype == "http://www.w3.org/2001/XMLSchema#dateTime" &&
         row[key].value
       ) {
         obj[key] = new Date(row[key].value);
@@ -176,9 +176,9 @@ export async function retrieveResourcesFromGraph(
   graph: string,
   nextOperationConfig: TaskConfiguration,
 ) {
-  const resourceFilter = nextOperationConfig.resourceFilter || '';
+  const resourceFilter = nextOperationConfig.resourceFilter || "";
   const resourceLimit = nextOperationConfig.resourceLimit || 0;
-  const limiter = resourceLimit > 0 ? `LIMIT ${resourceLimit}` : '';
+  const limiter = resourceLimit > 0 ? `LIMIT ${resourceLimit}` : "";
   const resourceUris = await query(`
     SELECT DISTINCT ?resource
     WHERE {
@@ -237,7 +237,7 @@ function inputContainerToTriples(container: InputContainer) {
 }
 
 async function insertTasks(...tasks: Task[]) {
-  const triplesToInsert = tasks.map((task) => taskToTriples(task)).join('\n');
+  const triplesToInsert = tasks.map((task) => taskToTriples(task)).join("\n");
 
   const insert = `PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -306,10 +306,10 @@ export async function findOpenTaskUris() {
     },
   );
 
-  const safeTargetOpsValues = targetOperations.map(sparqlEscapeUri).join('\n');
+  const safeTargetOpsValues = targetOperations.map(sparqlEscapeUri).join("\n");
 
   const result = await query(`
-    PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>    
+    PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
     SELECT DISTINCT ?task WHERE {
       VALUES ?operation {
         ${safeTargetOpsValues}
