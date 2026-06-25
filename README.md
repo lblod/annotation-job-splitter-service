@@ -149,7 +149,7 @@ export default {
         // For this kind of job, support processing two kinds of tasks
         {
           currentOperation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/operation-for-input-task",
-          nextOpertation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/operation-for-created-tasks"
+          nextOperation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/operation-for-created-tasks"
           resourceLimit: 100, 
           resourceFilter: `
         ?resource <http://purl.org/dc/terms/modified> ?modified.
@@ -158,7 +158,7 @@ export default {
         },
         {
           currentOperation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/another-task-operation",
-          nextOpertation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/next-for-another-task"
+          nextOperation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/next-for-another-task"
         },
       ]
     },
@@ -166,7 +166,7 @@ export default {
       taskConfiguration: [
         {
           currentOperation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/some-operation",
-          nextOpertation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/another-operation"
+          nextOperation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/another-operation"
         },
       ]
     },
