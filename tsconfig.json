@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "types": ["mu-types"],
-    "target": "ES2016",
-    "lib": ["ES2016", "dom"],
+    "target": "es2022",
+    "lib": ["es2022", "dom"],
     "allowSyntheticDefaultImports": true
   }
 }

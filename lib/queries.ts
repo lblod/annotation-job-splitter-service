@@ -254,7 +254,9 @@ async function insertTasks(...tasks: Task[]) {
   try {
     await update(insert);
   } catch (e: any) {
-    throw new Error(`${e.message}\n\nQuery that caused error:\n${insert}`);
+    throw new Error(`${e.message}\n\nQuery that caused error:\n${insert}`, {
+      cause: e,
+    });
   }
 }
 
@@ -293,7 +295,9 @@ export async function updateTaskStatus(task: Task, newStatus: string) {
   try {
     await update(insert);
   } catch (e: any) {
-    throw new Error(`${e.message}\n\nQuery that caused error:\n${insert}`);
+    throw new Error(`${e.message}\n\nQuery that caused error:\n${insert}`, {
+      cause: e,
+    });
   }
 }
 
