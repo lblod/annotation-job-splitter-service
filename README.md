@@ -119,7 +119,7 @@ export default {
 Each job configuration property has to specify one or more task configuration properties. Such a task configuration contains the task operations of relevant tasks and maps them to follow-up operation. As before the the operations must be specified as full URIs. For example, the following snippet configures one task configuration for a job. It essentially means that when the service receives a task that (1) is part of job with operation `"http://lblod.data.gift/id/jobs/concept/JobOperation/some-job-operation"`; and (2) has as task operation the value for `currentOperation`.
 Then a follow-up task should be created with as task operation the value of `nextOperation`.
 
-Optionally, it also allows for two additional filters that apply in case no resource urls are present in the job's ext:shapeForTargets, but it uses a class instead. This is useful for limiting the reach of scheduled tasks, so only a limited amount of tasks are spawned at a time. `resourceLimit` sets a limit to the number of resources of the defined class that are considered, while `resourceFilter` allows defining a SPARQL snippet that the resources must comply before this service creates a task for them. In the example below, the resources should be modified after a certain date.
+Optionally, and only for jobs that have a `sh:targetClass` as its `ext:shapeForTargets`, a taskConfiguration can add two additional filters for limiting the reach of scheduled tasks, so only a limited amount of tasks are spawned at a time. `resourceLimit` sets a limit to the number of resources of the defined class that are considered, while `resourceFilter` allows defining a SPARQL snippet that the resources must comply before this service creates a task for them. In the example below, the resources should be modified after a certain date.
 
 ```js
 "http://lblod.data.gift/id/jobs/concept/JobOperation/some-job-operation": {
@@ -127,11 +127,11 @@ Optionally, it also allows for two additional filters that apply in case no reso
     {
       currentOperation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/operation-for-input-task",
       nextOpertation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/operation-for-created-tasks",
-      resourceLimit: 100, // optional: a limit for how many of these tasks to create if no resource urls are present in the job's ext:shapeForTargets, but it uses a class instead. 
+      resourceLimit: 100, // optional: a limit for how many of these tasks to create if the job specifies its ext:shapeForTargets using a sh:targetClass
       resourceFilter: `
         ?resource <http://purl.org/dc/terms/modified> ?modified.
         FILTER(?modified > "2026-06-23"^^xsd:date)
-      ` // optional: filter to limit the resources considered if no if no resource urls are present in the job's ext:shapeForTargets, but it uses a class instead. 
+      ` // optional: filter to limit the resources considered if the job specifies its ext:shapeForTargets using a sh:targetClass
     },
   ...
   ]
