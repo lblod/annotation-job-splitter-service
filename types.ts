@@ -16,11 +16,6 @@ export type Quad = {
   graph: Term;
 };
 
-export type Changeset = {
-  inserts: Quad[];
-  deletes: Quad[];
-};
-
 export type Job = {
   uri: string;
   operation: string;
@@ -59,14 +54,16 @@ export type InputContainer = {
 export type JobConfig = {
   jobConfiguration: {
     [key: string]: {
-      taskConfiguration: [
-        {
-          currentOperation: string;
-          nextOperation: string;
-        },
-      ];
+      taskConfiguration: TaskConfiguration[];
     };
   };
   targetShapePredicate?: string;
   targetGraphPredicate?: string;
+};
+
+export type TaskConfiguration = {
+  currentOperation: string;
+  nextOperation: string;
+  resourceLimit?: number;
+  resourceFilter?: string;
 };

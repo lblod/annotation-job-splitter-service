@@ -7,7 +7,7 @@ import {
   updateSudo as update,
 } from '@lblod/mu-auth-sudo';
 import { sparqlEscapeDateTime, sparqlEscapeString, sparqlEscapeUri } from 'mu';
-import { InputContainer, Job, Shape, Task } from '../types';
+import { InputContainer, Job, Shape, Task, TaskConfiguration } from '../types';
 import { isConfiguredTaskOperation } from '../util/config';
 import {
   JOB_GRAPH,
@@ -15,8 +15,10 @@ import {
   STATUS,
   TARGET_GRAPH_PREDICATE,
   TARGET_SHAPE_PREDICATE,
+  TASK_STATUS_PREDICATE,
   TASKS_PER_BATCH,
 } from '../util/constants';
+import config from '../config/config';
 
 // Adapted from the Job controller service
 function parseResult<T extends string[]>(result: SPARQLQueryResult<T>) {
@@ -169,14 +171,22 @@ export async function retrieveTargetShape(uri: string) {
   }
 }
 
-export async function retrieveResourcesFromGraph(type: string, graph: string) {
+export async function retrieveResourcesFromGraph(
+  type: string,
+  graph: string,
+  nextOperationConfig: TaskConfiguration,
+) {
+  const resourceFilter = nextOperationConfig.resourceFilter || '';
+  const resourceLimit = nextOperationConfig.resourceLimit || 0;
+  const limiter = resourceLimit > 0 ? `LIMIT ${resourceLimit}` : '';
   const resourceUris = await query(`
     SELECT DISTINCT ?resource
     WHERE {
       GRAPH ${sparqlEscapeUri(graph)} {
         ?resource a ${sparqlEscapeUri(type)} .
       }
-    }`);
+      ${resourceFilter}
+    } ${limiter}`);
 
   return (
     resourceUris?.results?.bindings.map((binding) => binding.resource.value) ||
@@ -285,4 +295,29 @@ export async function updateTaskStatus(task: Task, newStatus: string) {
   } catch (e: any) {
     throw new Error(`${e.message}\n\nQuery that caused error:\n${insert}`);
   }
+}
+
+export async function findOpenTaskUris() {
+  const targetOperations = Object.values(config.jobConfiguration).flatMap(
+    (jobConfig) => {
+      return jobConfig.taskConfiguration.map((taskConfig) => {
+        return taskConfig.currentOperation;
+      });
+    },
+  );
+
+  const safeTargetOpsValues = targetOperations.map(sparqlEscapeUri).join('\n');
+
+  const result = await query(`
+    PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>    
+    SELECT DISTINCT ?task WHERE {
+      VALUES ?operation {
+        ${safeTargetOpsValues}
+      }
+      ?task ${sparqlEscapeUri(TASK_STATUS_PREDICATE)} ${sparqlEscapeUri(STATUS.SCHEDULED)} ;
+        task:operation ?operation .
+    }
+  `);
+
+  return result?.results.bindings?.map((b) => b.task.value) || [];
 }
