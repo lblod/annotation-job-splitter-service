@@ -1,6 +1,10 @@
 # Changelog
 ## Unreleased
 
+## v0.0.4 (2026-06-25)
+- [#5](https://github.com/lblod/annotation-job-splitter-service/pull/5) Fix some typescript issues
+- [#6](https://github.com/lblod/annotation-job-splitter-service/pull/6) Allow limiting tasks with sh:targetClass
+
 ## v0.0.3 (2026-06-03)
 - [#4](https://github.com/lblod/annotation-job-splitter-service/pull/4) Track depends on for tasks created by splitter
 
