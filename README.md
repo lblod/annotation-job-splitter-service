@@ -56,7 +56,7 @@ First, add the service to your application's `docker-compose.yml`. Note that the
 
 ```yaml
   annotation-job-splitter:
-    image: lblod/annotation-job-splitter:x.y.z
+    image: lblod/annotation-job-splitter-service:x.y.z
     # Optional volume for custom configuration
     volumes:
       - ../config/annotation-job-splitter:/config
