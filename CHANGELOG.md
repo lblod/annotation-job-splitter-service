@@ -1,6 +1,7 @@
 # Changelog
-## Unreleased
+## v0.0.5 (2026-07-17)
 - [#7](https://github.com/lblod/annotation-job-splitter-service/pull/7) Improve project configuration
+- [#8](https://github.com/lblod/annotation-job-splitter-service/pull/8) Fix annotation job splitter stuck after error
 
 ## v0.0.4 (2026-06-25)
 - [#5](https://github.com/lblod/annotation-job-splitter-service/pull/5) Fix some typescript issues
