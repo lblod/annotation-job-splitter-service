@@ -42,6 +42,22 @@ async function handleOpenTasks() {
   }
   const myRunning = new Date();
   running = myRunning;
+
+  const inputTasks = await unsafeHandleOpenTasks().catch((e) => {
+    console.log(`Something went wrong while splitting tasks: ${e}`);
+    return [];
+  });
+
+  if (running != myRunning) {
+    running = null;
+    return handleOpenTasks();
+  } else {
+    running = null;
+    return inputTasks;
+  }
+}
+
+async function unsafeHandleOpenTasks() {
   const taskUris = await findOpenTaskUris();
 
   const inputTasks: Task[] = [];
@@ -75,13 +91,7 @@ async function handleOpenTasks() {
     }),
   );
 
-  if (running != myRunning) {
-    running = null;
-    return handleOpenTasks();
-  } else {
-    running = null;
-    return inputTasks;
-  }
+  return inputTasks;
 }
 
 CronJob.from({
