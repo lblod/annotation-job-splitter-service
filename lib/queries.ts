@@ -6,10 +6,16 @@ import {
   SPARQLQueryResult,
   updateSudo as update,
 } from "@lblod/mu-auth-sudo";
-import { sparqlEscapeDateTime, sparqlEscapeString, sparqlEscapeUri } from "mu";
+import {
+  sparqlEscapeDateTime,
+  sparqlEscapeString,
+  sparqlEscapeUri,
+  uuid,
+} from "mu";
 import { InputContainer, Job, Shape, Task, TaskConfiguration } from "../types";
 import { isConfiguredTaskOperation } from "../util/config";
 import {
+  DEFAULT_BASE_URI,
   JOB_GRAPH,
   SLEEP_BETWEEN_BATCHES,
   STATUS,
@@ -231,9 +237,33 @@ function taskToTriples(task: Task) {
 }
 
 function inputContainerToTriples(container: InputContainer) {
-  return `${sparqlEscapeUri(container.uri)} a nfo:DataContainer ;
-    mu:uuid ${sparqlEscapeString(container.id)} ;
-    task:hasResource ${sparqlEscapeUri(container.resource)} .`;
+  let triples = `${sparqlEscapeUri(container.uri)} a nfo:DataContainer ;
+    mu:uuid ${sparqlEscapeString(container.id)} ;`;
+
+  // TODO: Make configurable
+  const harvestingCollection = true;
+  if (harvestingCollection) {
+    const collectionUuid = uuid();
+    const collectionUri = sparqlEscapeUri(
+      DEFAULT_BASE_URI.HARVEST_COLLECTION + collectionUuid,
+    );
+    const remoteUuid = uuid();
+    const remoteURI = sparqlEscapeUri(
+      DEFAULT_BASE_URI.REMOTE_DATA_OBJECT + remoteUuid,
+    );
+
+    return `${triples}
+      task:hasHarvestingCollection ${collectionUri} .
+      ${collectionUri} a hrvst:HarvestingCollection ;
+                       mu:uuid ${sparqlEscapeString(collectionUuid)} ;
+                       dcterms:hasPart ${remoteURI} .
+      ${remoteURI} a nfo:RemoteDataObject ;
+                   mu:uuid ${sparqlEscapeString(remoteUuid)} ;
+                   nie:url ${sparqlEscapeUri(container.resource)} .`;
+  } else {
+    return `${triples}
+      task:hasResource ${sparqlEscapeUri(container.resource)} .`;
+  }
 }
 
 async function insertTasks(...tasks: Task[]) {
@@ -245,6 +275,9 @@ async function insertTasks(...tasks: Task[]) {
     PREFIX nfo: <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#>
     PREFIX adms: <http://www.w3.org/ns/adms#>
     PREFIX cogs: <http://vocab.deri.ie/cogs#>
+    PREFIX hrvst: <http://lblod.data.gift/vocabularies/harvesting/>
+    PREFIX nfo: <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#>
+    PREFIX nie: <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#>
     INSERT DATA {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
         ${triplesToInsert}

@@ -13,6 +13,11 @@ export const STATUS = {
   FAILED: "http://redpencil.data.gift/id/concept/JobStatus/failed",
 };
 
+export const DEFAULT_BASE_URI = {
+  HARVEST_COLLECTION: "http://lblod.data.gift/id/harvest-collections/",
+  REMOTE_DATA_OBJECT: "http://lblod.data.gift/id/remote-data-objects/",
+};
+
 const DEFAULT_PREDICATES = {
   TARGET_SHAPE: "http://mu.semte.ch/vocabularies/ext/shapeForTargets",
   TARGET_GRAPH: "http://mu.semte.ch/vocabularies/ext/graphForTargets",
