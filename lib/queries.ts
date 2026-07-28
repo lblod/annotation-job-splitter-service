@@ -174,10 +174,10 @@ export async function retrieveTargetShape(uri: string) {
 export async function retrieveResourcesFromGraph(
   type: string,
   graph: string,
-  nextOperationConfig: TaskConfiguration,
+  taskConfiguration: TaskConfiguration,
 ) {
-  const resourceFilter = nextOperationConfig.resourceFilter || "";
-  const resourceLimit = nextOperationConfig.resourceLimit || 0;
+  const resourceFilter = taskConfiguration.resourceFilter || "";
+  const resourceLimit = taskConfiguration.resourceLimit || 0;
   const limiter = resourceLimit > 0 ? `LIMIT ${resourceLimit}` : "";
   const resourceUris = await query(`
     SELECT DISTINCT ?resource

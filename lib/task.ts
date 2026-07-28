@@ -1,7 +1,7 @@
 import { Job, Task, TaskConfiguration } from "../types";
 import { uuid } from "mu";
 import { retrieveResourcesFromGraph } from "./queries";
-import { getNextOperationConfig } from "../util/config";
+import { getTaskConfiguration } from "../util/config";
 
 const RESOURCE_BASE = {
   TASK: "http://redpencil.data.gift/id/task/",
@@ -9,15 +9,15 @@ const RESOURCE_BASE = {
 };
 
 export async function processTask(task: Task) {
-  const nextOperationConfig = getNextOperationConfig(task);
-  if (nextOperationConfig) {
+  const taskConfiguration = getTaskConfiguration(task);
+  if (taskConfiguration) {
     const nextIndex = task.index + 1;
 
-    const targets = await listTargets(task.parentJob, nextOperationConfig);
+    const targets = await listTargets(task.parentJob, taskConfiguration);
     return targets.map((target) =>
       createTask(
         task.parentJob,
-        nextOperationConfig.nextOperation,
+        taskConfiguration.nextOperation,
         target,
         nextIndex,
         task.uri,
@@ -30,7 +30,7 @@ export async function processTask(task: Task) {
   }
 }
 
-async function listTargets(job: Job, nextOperationConfig: TaskConfiguration) {
+async function listTargets(job: Job, taskConfiguration: TaskConfiguration) {
   const shape = job.targetShape;
 
   let targets: string[];
@@ -44,7 +44,7 @@ async function listTargets(job: Job, nextOperationConfig: TaskConfiguration) {
     targets = await retrieveResourcesFromGraph(
       shape.targetClass,
       job.targetGraph,
-      nextOperationConfig,
+      taskConfiguration,
     );
   } else if (shape.targetNodes) {
     targets = shape.targetNodes;

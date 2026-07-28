@@ -23,7 +23,7 @@ export function isConfiguredTask(task: Task) {
   }
 }
 
-export function getNextOperationConfig(task: Task) {
+export function getTaskConfiguration(task: Task) {
   const jobConfiguration = getJobConfiguration(task.parentJob.operation);
   if (jobConfiguration) {
     const taskConfiguration = jobConfiguration.taskConfiguration.find(
