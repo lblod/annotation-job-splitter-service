@@ -119,7 +119,7 @@ export default {
 Each job configuration property has to specify one or more task configuration properties. Such a task configuration contains the task operations of relevant tasks and maps them to follow-up operation. As before the the operations must be specified as full URIs. For example, the following snippet configures one task configuration for a job. It essentially means that when the service receives a task that (1) is part of job with operation `"http://lblod.data.gift/id/jobs/concept/JobOperation/some-job-operation"`; and (2) has as task operation the value for `currentOperation`.
 Then a follow-up task should be created with as task operation the value of `nextOperation`.
 
-Optionally, and only for jobs that have a `sh:targetClass` as its `ext:shapeForTargets`, a taskConfiguration can add two additional filters for limiting the reach of scheduled tasks, so only a limited amount of tasks are spawned at a time. `resourceLimit` sets a limit to the number of resources of the defined class that are considered, while `resourceFilter` allows defining a SPARQL snippet that the resources must comply before this service creates a task for them. In the example below, the resources should be modified after a certain date.
+Optionally, and only for jobs that have a `sh:targetClass` as its `ext:shapeForTargets`, a task configuration can add two additional filters for limiting the reach of scheduled tasks, so only a limited amount of tasks are spawned at a time. `resourceLimit` sets a limit to the number of resources of the defined class that are considered, while `resourceFilter` allows defining a SPARQL snippet that the resources must comply before this service creates a task for them. In the example below, the resources should be modified after a certain date.
 
 ```js
 "http://lblod.data.gift/id/jobs/concept/JobOperation/some-job-operation": {
@@ -138,6 +138,23 @@ Optionally, and only for jobs that have a `sh:targetClass` as its `ext:shapeForT
 },
 ```
 
+By default, tasks created by this service are linked to an input container that links to the resource that the task should operate on. If instead the created task requires its input container to contain a harvesting collection, the `harvestingCollection` property should be set to true. In this case the URIs defined by the target shape will be used as URL's for the collection's remote data object. Note, this is intended to be used for jobs that have one or more `sh:targetNode`s in its target shape. Combining this with jobs that have a `sh:targetClass` may result in unexpected behaviour in subsequent tasks as the  resource URIs the service found will be set as remote data object URLs.
+
+For example, the following snippet configures a job with a single task configuration. The tasks created for `nextOperation` will be linked to an input container which, in turn, is linked to a harvesting collection resource.
+
+```js
+"http://lblod.data.gift/id/jobs/concept/JobOperation/another-job-operation": {
+  taskConfiguration: [
+    {
+      currentOperation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/some-operation-for-input-task",
+      nextOpertation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/operation-for-task-requiring-harvesting-collection",
+      harvestingCollection: true
+    },
+  ...
+  ]
+},
+```
+
 Putting this all together might result in a configuration like the following.
 
 ```js
@@ -150,7 +167,7 @@ export default {
         {
           currentOperation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/operation-for-input-task",
           nextOperation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/operation-for-created-tasks"
-          resourceLimit: 100, 
+          resourceLimit: 100,
           resourceFilter: `
         ?resource <http://purl.org/dc/terms/modified> ?modified.
         FILTER(?modified > "2026-06-23"^^xsd:date)
@@ -165,8 +182,9 @@ export default {
     "http://lblod.data.gift/id/jobs/concept/JobOperation/another-job-operation": {
       taskConfiguration: [
         {
-          currentOperation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/some-operation",
-          nextOperation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/another-operation"
+          currentOperation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/some-operation-for-input-task",
+      nextOpertation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/operation-for-task-requiring-harvesting-collection",
+          harvestingCollection: true
         },
       ]
     },

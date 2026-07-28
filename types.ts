@@ -66,4 +66,5 @@ export type TaskConfiguration = {
   nextOperation: string;
   resourceLimit?: number;
   resourceFilter?: string;
+  harvestingCollection?: boolean;
 };

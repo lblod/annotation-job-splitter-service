@@ -45,6 +45,18 @@ export default {
           },
         ],
       },
+    "http://lblod.data.gift/id/jobs/concept/JobOperation/harvesting/pdf-to-eli":
+      {
+        taskConfiguration: [
+          {
+            currentOperation:
+              "http://lblod.data.gift/id/jobs/concept/TaskOperation/split-task-pdf-to-eli",
+            nextOperation:
+              "http://lblod.data.gift/id/jobs/concept/TaskOperation/pdf-scraping",
+            harvestingCollection: true,
+          },
+        ],
+      },
   },
   // optional
   // targetShapePredicate: "http://mu.semte.ch/vocabularies/ext/shapeForTargets",
