@@ -17,10 +17,10 @@ export async function processTask(task: Task) {
     return targets.map((target) =>
       createTask(
         task.parentJob,
-        taskConfiguration.nextOperation,
         target,
         nextIndex,
         task.uri,
+        taskConfiguration,
       ),
     );
   } else {
@@ -59,10 +59,10 @@ async function listTargets(job: Job, taskConfiguration: TaskConfiguration) {
 
 function createTask(
   parentJob: Job,
-  operation: string,
   target: string,
   index: number,
   dependsOn: string,
+  taskConfiguration: TaskConfiguration,
 ) {
   if (target) {
     const id = uuid();
@@ -71,22 +71,29 @@ function createTask(
       id: id,
       index: index,
       parentJob: parentJob,
-      operation: operation,
+      operation: taskConfiguration.nextOperation,
       dependsOn: dependsOn,
-      target: createInputContainer(target),
+      target: createInputContainer(
+        target,
+        taskConfiguration.harvestingCollection,
+      ),
     } as Task;
   } else {
     throw new Error(
-      `Could not create task for job ${parentJob.uri} with task operation ${operation} due to missing target.`,
+      `Could not create task for job ${parentJob.uri} with task operation ${taskConfiguration.nextOperation} due to missing target.`,
     );
   }
 }
 
-function createInputContainer(target: string) {
+function createInputContainer(
+  target: string,
+  harvestingCollection: boolean = false,
+) {
   const id = uuid();
   return {
     uri: RESOURCE_BASE.DATA_CONTAINER + id,
     id: id,
     resource: target,
+    harvestingCollection: harvestingCollection,
   };
 }

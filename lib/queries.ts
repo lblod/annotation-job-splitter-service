@@ -240,9 +240,7 @@ function inputContainerToTriples(container: InputContainer) {
   let triples = `${sparqlEscapeUri(container.uri)} a nfo:DataContainer ;
     mu:uuid ${sparqlEscapeString(container.id)} ;`;
 
-  // TODO: Make configurable
-  const harvestingCollection = true;
-  if (harvestingCollection) {
+  if (container.harvestingCollection) {
     const collectionUuid = uuid();
     const collectionUri = sparqlEscapeUri(
       DEFAULT_BASE_URI.HARVEST_COLLECTION + collectionUuid,

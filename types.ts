@@ -49,6 +49,7 @@ export type InputContainer = {
   uri: string;
   id: string;
   resource: string;
+  harvestingCollection: boolean;
 };
 
 export type JobConfig = {
