@@ -1,4 +1,7 @@
 # Changelog
+## Unreleased
+- [#9](https://github.com/lblod/annotation-job-splitter-service/pull/9) Add support for additional kind of input container for jobs
+
 ## v0.0.5 (2026-07-17)
 - [#7](https://github.com/lblod/annotation-job-splitter-service/pull/7) Improve project configuration
 - [#8](https://github.com/lblod/annotation-job-splitter-service/pull/8) Fix annotation job splitter stuck after error
