@@ -237,7 +237,7 @@ function taskToTriples(task: Task) {
 }
 
 function inputContainerToTriples(container: InputContainer) {
-  let triples = `${sparqlEscapeUri(container.uri)} a nfo:DataContainer ;
+  const triples = `${sparqlEscapeUri(container.uri)} a nfo:DataContainer ;
     mu:uuid ${sparqlEscapeString(container.id)} ;`;
 
   if (container.harvestingCollection) {
