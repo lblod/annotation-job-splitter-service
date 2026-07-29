@@ -23,6 +23,7 @@ app.post(
     // filtered by the deltanotifier config already.
     // NOTE (22/04/2026): Do not await here as this can take a long time,
     // e.g. when creating tasks for all decisions in a given graph.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     handleOpenTasks().catch((e: any) => {
       console.error(`Something went wrong while processing delta: ${e}`);
     });

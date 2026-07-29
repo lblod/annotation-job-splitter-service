@@ -45,9 +45,6 @@ module.exports = defineConfig([
       ],
 
       "linebreak-style": ["error", "unix"],
-      // NOTE (25/06/2026): We do use some explicit `any` for errors, in order
-      // to make the language server/editor happy.
-      "@typescript-eslint/no-explicit-any": "off",
       "no-unused-vars": "off",
 
       "@typescript-eslint/no-unused-vars": [
