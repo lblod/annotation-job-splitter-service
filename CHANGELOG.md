@@ -1,5 +1,7 @@
 # Changelog
 ## Unreleased
+
+## v0.0.6 (2026-07-29)
 - [#9](https://github.com/lblod/annotation-job-splitter-service/pull/9) Add support for additional kind of input container for jobs
 
 ## v0.0.5 (2026-07-17)
