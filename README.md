@@ -96,6 +96,10 @@ export default [
 This service is configured in two ways. First, a configuration file must be provided that specifies which types of job resources should be processed and how. Second, some environment variables can be configured. The following subsections document each of these in turn.
 
 ### Configuration file
+
+> [!WARNING]
+> The configuration format allows to configure multiple split tasks per job. But these tasks will all use the single SHACL node shape linked to the parent job. One should refrain from modifying this SHACL node shape as part of a task, as this will lead to unpredictable splitting behaviour when multiple tasks do so in parallel.
+
 The configuration specifies which types of jobs should be split into tasks by this service. This repository contains a default [configuration file](./config.config.ts) that can be overwritten to suite the application at hand. Note, this service's configuration is structured similarly to that of the [job-controller](https://github.com/lblod/job-controller-service) service.
 
 The configuration should export a single object. It has to contain at least a mandatory `jobConfiguration` property. This property in turn contains properties specifying which combinations of jobs and tasks should be processed. Each contained property has as key a full URI of a job operation. Tasks that are not part of a job with either of these operations will be ignored. Furthermore, you can configure custom predicates linking jobs to their target shapes and graphs using `targetShapePredicate` and `targetGraphPredicate` respectively. This structure is illustrated in the following snippet:
