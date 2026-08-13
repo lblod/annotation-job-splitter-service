@@ -181,6 +181,7 @@ export async function retrieveTargetShape(uri: string) {
 
 export async function retrieveResourcesFromGraph(
   type: string,
+  jobUri: string,
   graph: string,
   taskConfiguration: TaskConfiguration,
 ) {
@@ -190,6 +191,9 @@ export async function retrieveResourcesFromGraph(
   const resourceUris = await query(`
     SELECT DISTINCT ?resource
     WHERE {
+      VALUES ?job {
+        ${sparqlEscapeUri(jobUri)} 
+      }
       GRAPH ${sparqlEscapeUri(graph)} {
         ?resource a ${sparqlEscapeUri(type)} .
       }
