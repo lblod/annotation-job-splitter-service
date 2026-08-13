@@ -1,6 +1,9 @@
 # Changelog
 ## Unreleased
 
+## v0.0.7 (2026-08-13)
+- [#9](https://github.com/lblod/annotation-job-splitter-service/pull/10) Complete job when no resources to split
+
 ## v0.0.6 (2026-07-29)
 - [#9](https://github.com/lblod/annotation-job-splitter-service/pull/9) Add support for additional kind of input container for jobs
 
