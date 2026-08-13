@@ -1,6 +1,6 @@
 import { Job, Task, TaskConfiguration } from "../types";
 import { uuid } from "mu";
-import { retrieveResourcesFromGraph } from "./queries";
+import { completeJob, retrieveResourcesFromGraph } from "./queries";
 import { getTaskConfiguration } from "../util/config";
 
 const RESOURCE_BASE = {
@@ -14,6 +14,9 @@ export async function processTask(task: Task) {
     const nextIndex = task.index + 1;
 
     const targets = await listTargets(task.parentJob, taskConfiguration);
+    if (targets.length === 0) {
+      await completeJob(task);
+    }
     return targets.map((target) =>
       createTask(
         task.parentJob,

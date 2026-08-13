@@ -336,6 +336,41 @@ export async function updateTaskStatus(task: Task, newStatus: string) {
   }
 }
 
+export async function completeJob(task: Task) {
+  const now = sparqlEscapeDateTime(new Date());
+  const insert = `PREFIX adms: <http://www.w3.org/ns/adms#>
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    DELETE {
+      GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
+        ?job adms:status ?status ;
+              dcterms:modified ?modified .
+      }
+    }
+    INSERT {
+      GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
+        ?job adms:status ${sparqlEscapeUri(STATUS.SUCCESS)} ;
+              dcterms:modified ${now} .
+      }
+    }
+    WHERE {
+      GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
+        VALUES ?task {
+          ${sparqlEscapeUri(task.uri)}
+        }
+        ?task dcterms:isPartOf ?job .
+        ?job adms:status ?status .
+        OPTIONAL { ?job dcterms:modified ?modified . }
+      }
+    }`;
+  try {
+    await update(insert);
+  } catch (e: any) {
+    throw new Error(`${e.message}\n\nQuery that caused error:\n${insert}`, {
+      cause: e,
+    });
+  }
+}
+
 export async function findOpenTaskUris() {
   const targetOperations = Object.values(config.jobConfiguration).flatMap(
     (jobConfig) => {
