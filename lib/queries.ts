@@ -364,6 +364,7 @@ export async function completeJob(task: Task) {
     }`;
   try {
     await update(insert);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (e: any) {
     throw new Error(`${e.message}\n\nQuery that caused error:\n${insert}`, {
       cause: e,
