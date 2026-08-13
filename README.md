@@ -142,6 +142,8 @@ Optionally, and only for jobs that have a `sh:targetClass` as its `ext:shapeForT
 },
 ```
 
+The resource filter has access to the `?resource` and `?job` SPARQL variables, where `?job` is the job the current task is attached to. `?resource` is a resource that matches the `targetClass`, which the task is being split on.
+
 By default, tasks created by this service are linked to an input container that links to the resource that the task should operate on. If instead the created task requires its input container to contain a harvesting collection, the `harvestingCollection` property should be set to true. In this case the URIs defined by the target shape will be used as URL's for the collection's remote data object. Note, this is intended to be used for jobs that have one or more `sh:targetNode`s in its target shape. Combining this with jobs that have a `sh:targetClass` may result in unexpected behaviour in subsequent tasks as the  resource URIs the service found will be set as remote data object URLs.
 
 For example, the following snippet configures a job with a single task configuration. The tasks created for `nextOperation` will be linked to an input container which, in turn, is linked to a harvesting collection resource.
