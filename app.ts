@@ -3,6 +3,7 @@ import { app, errorHandler } from "mu";
 import { processTask } from "./lib/task";
 import {
   batchedInsertTasks,
+  failBusyTasks,
   findOpenTaskUris,
   retrieveTaskData,
   updateTaskStatus,
@@ -109,12 +110,16 @@ CronJob.from({
   start: true,
 });
 
-handleOpenTasks().catch((e) => {
-  console.log(
-    "Something went wrong checking for missed deltas on startup, ",
-    e,
-  );
-  process.exit(1);
-});
+setTimeout(() => {
+  failBusyTasks()
+    .then(handleOpenTasks)
+    .catch((e) => {
+      console.log(
+        "Something went wrong checking for missed deltas on startup, ",
+        e,
+      );
+      process.exit(1);
+    });
+}, 10000);
 
 app.use(errorHandler);
