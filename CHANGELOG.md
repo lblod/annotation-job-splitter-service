@@ -1,6 +1,9 @@
 # Changelog
 ## Unreleased
 
+## v0.0.9 (2026-08-14)
+- [#12](https://github.com/lblod/annotation-job-splitter-service/pull/12) Set task to busy when running it
+
 ## v0.0.8 (2026-08-13)
 - [#11](https://github.com/lblod/annotation-job-splitter-service/pull/11) Allow resource filter to use information from the job
 
