@@ -207,6 +207,7 @@ export async function retrieveResourcesFromGraph(
 }
 
 export async function batchedInsertTasks(inputTask: Task, outputTasks: Task[]) {
+  await updateTaskStatus(inputTask, STATUS.BUSY);
   for (let i = 0; i < outputTasks.length; i += TASKS_PER_BATCH) {
     const tasksBatch = outputTasks.slice(i, i + TASKS_PER_BATCH);
     console.info(
