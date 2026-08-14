@@ -207,7 +207,6 @@ export async function retrieveResourcesFromGraph(
 }
 
 export async function batchedInsertTasks(inputTask: Task, outputTasks: Task[]) {
-  await updateTaskStatus(inputTask, STATUS.BUSY);
   for (let i = 0; i < outputTasks.length; i += TASKS_PER_BATCH) {
     const tasksBatch = outputTasks.slice(i, i + TASKS_PER_BATCH);
     console.info(
@@ -219,7 +218,7 @@ export async function batchedInsertTasks(inputTask: Task, outputTasks: Task[]) {
   }
 
   // Update the status of the input tasks as all output tasks are inserted
-  await updateTaskStatus(inputTask, STATUS.SUCCESS);
+  await updateTaskStatus(inputTask.uri, STATUS.SUCCESS);
   console.info(`\n>> INFO: Completed task ${inputTask.uri}`);
 }
 
@@ -306,7 +305,7 @@ async function sleep() {
   }
 }
 
-export async function updateTaskStatus(task: Task, newStatus: string) {
+export async function updateTaskStatus(taskUri: string, newStatus: string) {
   const now = sparqlEscapeDateTime(new Date());
   const insert = `PREFIX adms: <http://www.w3.org/ns/adms#>
     PREFIX dcterms: <http://purl.org/dc/terms/>
@@ -325,7 +324,7 @@ export async function updateTaskStatus(task: Task, newStatus: string) {
     WHERE {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
         VALUES ?task {
-          ${sparqlEscapeUri(task.uri)}
+          ${sparqlEscapeUri(taskUri)}
         }
         ?task adms:status ?status .
         OPTIONAL { ?task dcterms:modified ?modified . }

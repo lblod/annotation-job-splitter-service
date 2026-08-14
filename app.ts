@@ -5,10 +5,12 @@ import {
   batchedInsertTasks,
   findOpenTaskUris,
   retrieveTaskData,
+  updateTaskStatus,
 } from "./lib/queries";
 import { CronJob } from "cron";
 import { Task } from "./types";
 import { isConfiguredTask } from "./util/config";
+import { STATUS } from "./util/constants";
 
 app.get("/health", async function (_req, res) {
   res.send({ status: "ok" });
@@ -64,6 +66,8 @@ async function unsafeHandleOpenTasks() {
   const inputTasks: Task[] = [];
   for (const taskUri of taskUris) {
     const task = await retrieveTaskData(taskUri);
+    await updateTaskStatus(taskUri, STATUS.BUSY);
+
     if (task && isConfiguredTask(task)) {
       inputTasks.push(task);
     } else {
