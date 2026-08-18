@@ -67,10 +67,10 @@ async function unsafeHandleOpenTasks() {
   const inputTasks: Task[] = [];
   for (const taskUri of taskUris) {
     const task = await retrieveTaskData(taskUri);
-    await updateTaskStatus(taskUri, STATUS.BUSY);
 
     if (task && isConfiguredTask(task)) {
       inputTasks.push(task);
+      await updateTaskStatus(taskUri, STATUS.BUSY);
     } else {
       console.info(
         `\n>> INFO: Ignoring task ${taskUri} as its resource does not match a configured task`,
