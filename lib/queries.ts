@@ -218,7 +218,7 @@ export async function batchedInsertTasks(inputTask: Task, outputTasks: Task[]) {
   }
 
   // Update the status of the input tasks as all output tasks are inserted
-  await updateTaskStatus(inputTask, STATUS.SUCCESS);
+  await updateTaskStatus(inputTask.uri, STATUS.SUCCESS);
   console.info(`\n>> INFO: Completed task ${inputTask.uri}`);
 }
 
@@ -305,7 +305,7 @@ async function sleep() {
   }
 }
 
-export async function updateTaskStatus(task: Task, newStatus: string) {
+export async function updateTaskStatus(taskUri: string, newStatus: string) {
   const now = sparqlEscapeDateTime(new Date());
   const insert = `PREFIX adms: <http://www.w3.org/ns/adms#>
     PREFIX dcterms: <http://purl.org/dc/terms/>
@@ -324,7 +324,7 @@ export async function updateTaskStatus(task: Task, newStatus: string) {
     WHERE {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
         VALUES ?task {
-          ${sparqlEscapeUri(task.uri)}
+          ${sparqlEscapeUri(taskUri)}
         }
         ?task adms:status ?status .
         OPTIONAL { ?task dcterms:modified ?modified . }
@@ -399,4 +399,42 @@ export async function findOpenTaskUris() {
   `);
 
   return result?.results.bindings?.map((b) => b.task.value) || [];
+}
+
+export async function failBusyTasks() {
+  const targetOperations = Object.values(config.jobConfiguration).flatMap(
+    (jobConfig) => {
+      return jobConfig.taskConfiguration.map((taskConfig) => {
+        return taskConfig.currentOperation;
+      });
+    },
+  );
+
+  const safeTargetOpsValues = targetOperations.map(sparqlEscapeUri).join("\n");
+  await update(`
+    PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    DELETE {
+      GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
+        ?task ${sparqlEscapeUri(TASK_STATUS_PREDICATE)} ${sparqlEscapeUri(STATUS.BUSY)} ;
+              dcterms:modified ?modified .
+      }
+    } 
+    INSERT {
+      GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
+        ?task ${sparqlEscapeUri(TASK_STATUS_PREDICATE)} ${sparqlEscapeUri(STATUS.FAILED)} ;
+            dcterms:modified ${sparqlEscapeDateTime(new Date())} .
+      }
+    }
+    WHERE {
+      GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
+        VALUES ?operation {
+          ${safeTargetOpsValues}
+        }
+        ?task ${sparqlEscapeUri(TASK_STATUS_PREDICATE)} ${sparqlEscapeUri(STATUS.BUSY)} ;
+          task:operation ?operation .
+        OPTIONAL { ?task dcterms:modified ?modified . }
+      }
+    }
+  `);
 }

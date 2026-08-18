@@ -3,12 +3,15 @@ import { app, errorHandler } from "mu";
 import { processTask } from "./lib/task";
 import {
   batchedInsertTasks,
+  failBusyTasks,
   findOpenTaskUris,
   retrieveTaskData,
+  updateTaskStatus,
 } from "./lib/queries";
 import { CronJob } from "cron";
 import { Task } from "./types";
 import { isConfiguredTask } from "./util/config";
+import { STATUS } from "./util/constants";
 
 app.get("/health", async function (_req, res) {
   res.send({ status: "ok" });
@@ -64,8 +67,10 @@ async function unsafeHandleOpenTasks() {
   const inputTasks: Task[] = [];
   for (const taskUri of taskUris) {
     const task = await retrieveTaskData(taskUri);
+
     if (task && isConfiguredTask(task)) {
       inputTasks.push(task);
+      await updateTaskStatus(taskUri, STATUS.BUSY);
     } else {
       console.info(
         `\n>> INFO: Ignoring task ${taskUri} as its resource does not match a configured task`,
@@ -105,12 +110,14 @@ CronJob.from({
   start: true,
 });
 
-handleOpenTasks().catch((e) => {
-  console.log(
-    "Something went wrong checking for missed deltas on startup, ",
-    e,
-  );
-  process.exit(1);
-});
+failBusyTasks()
+  .then(handleOpenTasks)
+  .catch((e) => {
+    console.log(
+      "Something went wrong checking for missed deltas on startup, ",
+      e,
+    );
+    process.exit(1);
+  });
 
 app.use(errorHandler);
