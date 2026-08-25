@@ -10,7 +10,6 @@ import {
 } from "./lib/queries";
 import { CronJob } from "cron";
 import { Task } from "./types";
-import { isConfiguredTask } from "./util/config";
 import { STATUS } from "./util/constants";
 
 app.get("/health", async function (_req, res) {
@@ -68,7 +67,7 @@ async function unsafeHandleOpenTasks() {
   for (const taskUri of taskUris) {
     const task = await retrieveTaskData(taskUri);
 
-    if (task && isConfiguredTask(task)) {
+    if (task) {
       inputTasks.push(task);
       await updateTaskStatus(taskUri, STATUS.BUSY);
     } else {

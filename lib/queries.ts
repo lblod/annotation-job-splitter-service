@@ -13,7 +13,7 @@ import {
   uuid,
 } from "mu";
 import { InputContainer, Job, Shape, Task, TaskConfiguration } from "../types";
-import { isConfiguredTaskOperation } from "../util/config";
+import { isConfiguredTask } from "../util/config";
 import {
   DEFAULT_BASE_URI,
   JOB_GRAPH,
@@ -77,22 +77,17 @@ export async function retrieveTaskData(uri: string) {
     }`);
 
   const taskData = parseResult(task!)[0];
-  const mightBeInterestingTask =
-    taskData?.operation && isConfiguredTaskOperation(taskData.operation);
-  if (mightBeInterestingTask) {
-    const job = await retrieveJob(taskData.job);
-    if (job) {
-      return {
-        uri: uri,
-        index: parseInt(taskData.index),
-        parentJob: job,
-        operation: taskData.operation,
-      } as Task;
-    } else {
-      console.info(
-        `\n>> INFO: Ignoring task ${uri} as it is not linked to a (correct) job`,
-      );
-    }
+  const job = taskData?.job ? await retrieveJob(taskData.job) : undefined;
+
+  if (job) {
+    const task = {
+      uri: uri,
+      index: parseInt(taskData.index),
+      parentJob: job,
+      operation: taskData.operation,
+    } as Task;
+
+    return isConfiguredTask(task) ? task : undefined;
   }
 }
 
