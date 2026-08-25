@@ -5,6 +5,14 @@ function getJobConfiguration(operation: string) {
   return config.jobConfiguration[operation];
 }
 
+export function getTaskOperations() {
+  return Object.values(config.jobConfiguration).flatMap((jobConfig) => {
+    return jobConfig.taskConfiguration.flatMap(
+      (taskConfig: TaskConfiguration) => taskConfig.currentOperation,
+    );
+  });
+}
+
 export function isConfiguredTask(task: Task) {
   const jobConfiguration = getJobConfiguration(task.parentJob.operation);
   if (jobConfiguration) {

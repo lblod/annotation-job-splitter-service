@@ -13,7 +13,7 @@ import {
   uuid,
 } from "mu";
 import { InputContainer, Job, Shape, Task, TaskConfiguration } from "../types";
-import { isConfiguredTask } from "../util/config";
+import { getTaskOperations, isConfiguredTask } from "../util/config";
 import {
   DEFAULT_BASE_URI,
   JOB_GRAPH,
@@ -23,7 +23,6 @@ import {
   TARGET_SHAPE_PREDICATE,
   TASKS_PER_BATCH,
 } from "../util/constants";
-import config from "../config/config";
 
 // Adapted from the Job controller service
 function parseResult<T extends string[]>(result: SPARQLQueryResult<T>) {
@@ -371,14 +370,7 @@ export async function completeJob(task: Task) {
 }
 
 export async function findOpenTaskUris() {
-  const targetOperations = Object.values(config.jobConfiguration).flatMap(
-    (jobConfig) => {
-      return jobConfig.taskConfiguration.map((taskConfig) => {
-        return taskConfig.currentOperation;
-      });
-    },
-  );
-
+  const targetOperations = getTaskOperations();
   const safeTargetOpsValues = targetOperations.map(sparqlEscapeUri).join("\n");
 
   const result = await query(`PREFIX adms: <http://www.w3.org/ns/adms#>
@@ -396,14 +388,7 @@ export async function findOpenTaskUris() {
 }
 
 export async function failBusyTasks() {
-  const targetOperations = Object.values(config.jobConfiguration).flatMap(
-    (jobConfig) => {
-      return jobConfig.taskConfiguration.map((taskConfig) => {
-        return taskConfig.currentOperation;
-      });
-    },
-  );
-
+  const targetOperations = getTaskOperations();
   const safeTargetOpsValues = targetOperations.map(sparqlEscapeUri).join("\n");
   await update(`PREFIX adms: <http://www.w3.org/ns/adms#>
     PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
