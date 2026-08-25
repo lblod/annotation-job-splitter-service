@@ -21,7 +21,6 @@ import {
   STATUS,
   TARGET_GRAPH_PREDICATE,
   TARGET_SHAPE_PREDICATE,
-  TASK_STATUS_PREDICATE,
   TASKS_PER_BATCH,
 } from "../util/constants";
 import config from "../config/config";
@@ -192,7 +191,7 @@ export async function retrieveResourcesFromGraph(
     SELECT DISTINCT ?resource
     WHERE {
       VALUES ?job {
-        ${sparqlEscapeUri(jobUri)} 
+        ${sparqlEscapeUri(jobUri)}
       }
       GRAPH ${sparqlEscapeUri(graph)} {
         ?resource a ${sparqlEscapeUri(type)} .
@@ -353,7 +352,7 @@ export async function completeJob(task: Task) {
     INSERT {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
         ?job adms:status ${sparqlEscapeUri(STATUS.SUCCESS)} ;
-              dcterms:modified ${now} .
+             dcterms:modified ${now} .
       }
     }
     WHERE {
@@ -387,16 +386,16 @@ export async function findOpenTaskUris() {
 
   const safeTargetOpsValues = targetOperations.map(sparqlEscapeUri).join("\n");
 
-  const result = await query(`
+  const result = await query(`PREFIX adms: <http://www.w3.org/ns/adms#>
     PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
     SELECT DISTINCT ?task WHERE {
       VALUES ?operation {
         ${safeTargetOpsValues}
       }
-      ?task ${sparqlEscapeUri(TASK_STATUS_PREDICATE)} ${sparqlEscapeUri(STATUS.SCHEDULED)} ;
-        task:operation ?operation .
-    }
-  `);
+      ?task adms:status ${sparqlEscapeUri(STATUS.SCHEDULED)} ;
+            task:operation ?operation .
+  }
+`);
 
   return result?.results.bindings?.map((b) => b.task.value) || [];
 }
@@ -411,19 +410,19 @@ export async function failBusyTasks() {
   );
 
   const safeTargetOpsValues = targetOperations.map(sparqlEscapeUri).join("\n");
-  await update(`
+  await update(`PREFIX adms: <http://www.w3.org/ns/adms#>
     PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
     PREFIX dcterms: <http://purl.org/dc/terms/>
     DELETE {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
-        ?task ${sparqlEscapeUri(TASK_STATUS_PREDICATE)} ${sparqlEscapeUri(STATUS.BUSY)} ;
+        ?task adms:status ${sparqlEscapeUri(STATUS.BUSY)} ;
               dcterms:modified ?modified .
       }
-    } 
+    }
     INSERT {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
-        ?task ${sparqlEscapeUri(TASK_STATUS_PREDICATE)} ${sparqlEscapeUri(STATUS.FAILED)} ;
-            dcterms:modified ${sparqlEscapeDateTime(new Date())} .
+        ?task adms:status ${sparqlEscapeUri(STATUS.FAILED)} ;
+              dcterms:modified ${sparqlEscapeDateTime(new Date())} .
       }
     }
     WHERE {
@@ -431,10 +430,10 @@ export async function failBusyTasks() {
         VALUES ?operation {
           ${safeTargetOpsValues}
         }
-        ?task ${sparqlEscapeUri(TASK_STATUS_PREDICATE)} ${sparqlEscapeUri(STATUS.BUSY)} ;
-          task:operation ?operation .
+        ?task adms:status ${sparqlEscapeUri(STATUS.BUSY)} ;
+              task:operation ?operation .
         OPTIONAL { ?task dcterms:modified ?modified . }
-      }
     }
-  `);
+  }
+`);
 }
