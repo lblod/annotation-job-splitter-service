@@ -1,5 +1,7 @@
 # Changelog
 ## Unreleased
+- [#13](https://github.com/lblod/annotation-job-splitter-service/pull/13) removed unnecessary constant
+- [#14](https://github.com/lblod/annotation-job-splitter-service/pull/14) simplify checking whether a task is relevant
 
 ## v0.0.9 (2026-08-14)
 - [#12](https://github.com/lblod/annotation-job-splitter-service/pull/12) Set task to busy when running it
