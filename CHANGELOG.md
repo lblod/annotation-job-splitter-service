@@ -1,5 +1,7 @@
 # Changelog
 ## Unreleased
+
+## v0.0.10 (2026-08-28)
 - [#13](https://github.com/lblod/annotation-job-splitter-service/pull/13) removed unnecessary constant
 - [#14](https://github.com/lblod/annotation-job-splitter-service/pull/14) simplify checking whether a task is relevant
 
