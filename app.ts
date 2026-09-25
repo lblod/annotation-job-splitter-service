@@ -71,6 +71,11 @@ async function unsafeHandleOpenTasks() {
       inputTasks.push(task);
       await updateTaskStatus(taskUri, STATUS.BUSY);
     } else {
+      // TODO: Should we handle "incorrect" tasks better?  Presumably, task
+      // operations are properly configured and no other service will pick up
+      // tasks with the operation relevant for this service.  Maybe we should
+      // set tasks without shape to done, so to avoid blocking the job if the
+      // shape is missing/incorrect?
       console.info(
         `\n>> INFO: Ignoring task ${taskUri} as its resource does not match a configured task`,
       );
