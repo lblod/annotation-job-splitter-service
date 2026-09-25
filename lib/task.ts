@@ -1,7 +1,7 @@
-import { Job, Task, TaskConfiguration } from "../types";
 import { uuid } from "mu";
-import { completeJob, retrieveResourcesFromGraph } from "./queries";
+import { Job, Shape, Task, TaskConfiguration } from "../types";
 import { getTaskConfiguration } from "../util/config";
+import { completeJob, retrieveResourcesFromGraph } from "./queries";
 
 const RESOURCE_BASE = {
   TASK: "http://redpencil.data.gift/id/task/",
@@ -13,7 +13,7 @@ export async function processTask(task: Task) {
   if (taskConfiguration) {
     const nextIndex = task.index + 1;
 
-    const targets = await listTargets(task.parentJob, taskConfiguration);
+    const targets = await listTargets(task, taskConfiguration);
     if (targets.length === 0) {
       await completeJob(task);
     }
@@ -33,8 +33,9 @@ export async function processTask(task: Task) {
   }
 }
 
-async function listTargets(job: Job, taskConfiguration: TaskConfiguration) {
-  const shape = job.targetShape;
+async function listTargets(task: Task, taskConfiguration: TaskConfiguration) {
+  // TODO: This is icky
+  const shape = task.input.resource as Shape;
 
   let targets: string[];
   // NOTE (18/04/2026): This assumes that it is not meaningful to specify both a
@@ -46,8 +47,8 @@ async function listTargets(job: Job, taskConfiguration: TaskConfiguration) {
     // graph URI.
     targets = await retrieveResourcesFromGraph(
       shape.targetClass,
-      job.uri,
-      job.targetGraph,
+      task.parentJob.uri,
+      task.input.targetGraph,
       taskConfiguration,
     );
   } else if (shape.targetNodes) {
@@ -77,14 +78,14 @@ function createTask(
       parentJob: parentJob,
       operation: taskConfiguration.nextOperation,
       dependsOn: dependsOn,
-      target: createInputContainer(
+      input: createInputContainer(
         target,
         taskConfiguration.harvestingCollection,
       ),
     } as Task;
   } else {
     throw new Error(
-      `Could not create task for job ${parentJob.uri} with task operation ${taskConfiguration.nextOperation} due to missing target.`,
+      `Could not create task for job ${parentJob} with task operation ${taskConfiguration.nextOperation} due to missing target.`,
     );
   }
 }

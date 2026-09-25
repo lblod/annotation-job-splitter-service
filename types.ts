@@ -19,8 +19,6 @@ export type Quad = {
 export type Job = {
   uri: string;
   operation: string;
-  targetShape: Shape;
-  targetGraph: string;
 };
 
 export type Shape =
@@ -41,14 +39,19 @@ export type Task = {
   index: number;
   parentJob: Job;
   operation: string;
-  target: InputContainer;
+  input: InputContainer;
   dependsOn: string;
 };
 
 export type InputContainer = {
   uri: string;
   id: string;
-  resource: string;
+  // NOTE (24/09/2026): For incoming tasks require a Shape to be linked, but for
+  // created tasks we will just assign a resource URI.
+  // TODO: Can we avoid this or? Maybe retrieve shape at a later point in the
+  // flow, e.g. when its content is actually needed?
+  resource: Shape | string;
+  targetGraph: string;
   harvestingCollection: boolean;
 };
 
@@ -58,7 +61,6 @@ export type JobConfig = {
       taskConfiguration: TaskConfiguration[];
     };
   };
-  targetShapePredicate?: string;
   targetGraphPredicate?: string;
 };
 
