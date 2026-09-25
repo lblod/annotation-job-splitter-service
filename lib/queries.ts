@@ -20,7 +20,6 @@ import {
   SLEEP_BETWEEN_BATCHES,
   STATUS,
   TARGET_GRAPH_PREDICATE,
-  TARGET_SHAPE_PREDICATE,
   TASKS_PER_BATCH,
 } from "../util/constants";
 
@@ -61,10 +60,12 @@ function parseResult<T extends string[]>(result: SPARQLQueryResult<T>) {
 }
 
 export async function retrieveTaskData(uri: string) {
-  const task =
+  const taskDataRaw =
     await query(`PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
       PREFIX dcterms: <http://purl.org/dc/terms/>
-      SELECT DISTINCT ?task ?index ?job ?operation
+      PREFIX sh: <http://www.w3.org/ns/shacl#>
+      PREFIX cogs: <http://vocab.deri.ie/cogs#>
+      SELECT DISTINCT ?task ?index ?operation ?inputContainer ?targetShape ?targetGraph ?job ?jobOperation
       WHERE {
         VALUES ?task {
           ${sparqlEscapeUri(uri)}
@@ -72,59 +73,52 @@ export async function retrieveTaskData(uri: string) {
         ?task a task:Task ;
               task:index ?index ;
               dcterms:isPartOf ?job ;
-              task:operation ?operation .
-    }`);
+              task:operation ?operation ;
+              task:inputContainer ?inputContainer .
 
-  const taskData = parseResult(task!)[0];
-  const job = taskData?.job ? await retrieveJob(taskData.job) : undefined;
-
-  if (job) {
-    const task = {
-      uri: uri,
-      index: parseInt(taskData.index),
-      parentJob: job,
-      operation: taskData.operation,
-    } as Task;
-
-    return isConfiguredTask(task) ? task : undefined;
-  }
-}
-
-async function retrieveJob(uri: string) {
-  const job = await query(`PREFIX cogs: <http://vocab.deri.ie/cogs#>
-    PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
-    SELECT DISTINCT ?job ?operation ?targetShape ?targetGraph
-    WHERE {
-      GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
-        VALUES ?job {
-          ${sparqlEscapeUri(uri)}
-        }
         ?job a cogs:Job ;
-             task:operation ?operation .
-        OPTIONAL {
-          ?job ${sparqlEscapeUri(TARGET_SHAPE_PREDICATE)} ?targetShape .
-        }
-        OPTIONAL {
-          ?job ${sparqlEscapeUri(TARGET_GRAPH_PREDICATE)} ?targetGraph .
-        }
-      }
-    }`);
+             task:operation ?jobOperation .
 
-  const jobData = parseResult(job!)[0];
-  const shape = jobData?.targetShape
-    ? await retrieveTargetShape(jobData.targetShape)
-    : undefined;
+        ?inputContainer task:hasResource ?targetShape .
+        ?targetShape a sh:NodeShape ;
+                     sh:targetNode|sh:targetClass ?target .
+        OPTIONAL {
+          ?inputContainer ${sparqlEscapeUri(TARGET_GRAPH_PREDICATE)} ?targetGraph .
+        }
+      }`);
 
-  if (shape) {
-    return {
-      uri: uri,
-      operation: jobData.operation,
-      targetShape: shape,
-      targetGraph: jobData.targetGraph,
-    } as Job;
+  const taskData = parseResult(taskDataRaw!)[0];
+
+  if (taskData) {
+    // TODO: Currently the job is also used in the configuration.  Is this still
+    // necessary?  Might be cleaner if we can ignore the parent job altogether.
+    const job = taskData.job
+      ? ({ uri: taskData.job, operation: taskData.jobOperation } as Job)
+      : undefined;
+    const inputContainer = taskData?.inputContainer
+      ? ({
+          uri: taskData.inputContainer,
+          // NOTE (25/09/2026): The above query ensures this is a suitable
+          // mostly ensures this is a URI of a valid shape.
+          resource: taskData.targetShape,
+          targetGraph: taskData.targetGraph,
+        } as InputContainer)
+      : undefined;
+
+    if (job && inputContainer) {
+      const task = {
+        uri: uri,
+        index: parseInt(taskData.index),
+        parentJob: job,
+        operation: taskData.operation,
+        input: inputContainer,
+      } as Task;
+
+      return isConfiguredTask(task) ? task : undefined;
+    }
   } else {
     console.info(
-      `\n>> INFO: ${uri} is not a job resource or a job resource without a target shape`,
+      `\n>> INFO: ${uri} is not a task resource or a task resource without a target shape in an input container`,
     );
   }
 }
@@ -172,6 +166,8 @@ export async function retrieveTargetShape(uri: string) {
   }
 }
 
+// TODO: The jobUri can be used by the resourceFilter, is there a way around
+// this?
 export async function retrieveResourcesFromGraph(
   type: string,
   jobUri: string,
@@ -227,9 +223,9 @@ function taskToTriples(task: Task) {
     cogs:dependsOn ${sparqlEscapeUri(task.dependsOn)} ;
     adms:status ${sparqlEscapeUri(STATUS.SCHEDULED)} ;
     task:index ${sparqlEscapeString(task.index.toString())} ;
-    task:inputContainer ${sparqlEscapeUri(task.target.uri)} .
+    task:inputContainer ${sparqlEscapeUri(task.input.uri)} .
 
-    ${inputContainerToTriples(task.target)}
+    ${inputContainerToTriples(task.input)}
   `;
 
   return triples;

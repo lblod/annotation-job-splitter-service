@@ -59,6 +59,5 @@ export default {
       },
   },
   // optional
-  // targetShapePredicate: "http://mu.semte.ch/vocabularies/ext/shapeForTargets",
   // targetGraphPredicate: "http://mu.semte.ch/vocabularies/ext/graphForTargets",
 } as JobConfig;

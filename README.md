@@ -3,52 +3,51 @@
 > [!Warning]
 > This service is currently under construction
 
-The annotation job splitter service offers functionality to split jobs into multiple tasks depending on the resource(s) serving as target for a job. This service operates on delta message it expects to receive when the status of a possibly relevant task changes.
+The annotation job splitter service offers functionality to split a task into multiple tasks depending on the resource(s) serving as target. This service operates on delta message it expects to receive when the status of a possibly relevant task changes.
 
 ## Data model
-In order to be able to process tasks correctly, this service expects that the containing job adheres to a given data model. More specifically, a job has to to link to a SHACL node shape describing its input resources. This node shape either explicitly links to one or more resources, or specifies an RDF type of resources to query for. In the latter case a graph **must** also be specified in which to search for appropriate resources.
+In order to be able to process tasks correctly, this service expects that the contents of a task's input container adheres to a given data model. More specifically, a the input container has to link to a SHACL node shape describing its input resources. This node shape either explicitly links to one or more resources, or specifies an RDF type of resources to query for. In the latter case a graph **must** also be specified in which to search for appropriate resources.
 
-More specifically, this service can process tasks part of a job that satisfy either of the following structures. In the first snippet below, the linked node shape explicitly specifies two resources that are inputs for a job. Note, that the service does **not** check whether these resources exist, this is the responsibility of the service that will execute the actual task(s).
+More specifically, this service can process tasks whose input container satisfy either of the following structures. In the first snippet below, the linked node shape explicitly specifies two resources that are inputs for a task. Note, that the service does **not** check whether these resources exist, this is the responsibility of the service that will execute the actual task(s).
 
 ```ttl
-@prefix cogs: <http://vocab.deri.ie/cogs#> .
-@prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix ext: <http://mu.semte.ch/vocabularies/ext/> .
+@prefix nfo: <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix task: <http://redpencil.data.gift/vocabularies/tasks/> .
 
-<task> a task:Task ;
-  dcterms:isPartOf <job> .
 
-<job> a cogs:Job ;
-  ext:shapeForTargets <shape-with-target-nodes> .
+<task> a task:Task ;
+  task:inputContainer <input-container> .
+
+<input-container> a nfo:DataContainer ;
+  task:hasResource <shape-with-target-nodes> .
 
 <shape-with-target-nodes> a sh:NodeShape ;
   sh:targetNode <resource-1> ,
     <resource-2> .
 ```
 
-In the second snippet below, the node shape linked to the job resource specifies an RDF resource type as its `sh:targetClass`. In this case the job itself must also specify a graph in which to look for such resources.
+In the second snippet below, the node shape linked to the task's target shape specifies an RDF resource type as its `sh:targetClass`. In this case the input container must also specify a graph in which to look for such resources.
 
 ```ttl
-@prefix cogs: <http://vocab.deri.ie/cogs#> .
-@prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix ext: <http://mu.semte.ch/vocabularies/ext/> .
+@prefix nfo: <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix task: <http://redpencil.data.gift/vocabularies/tasks/> .
 
 <task> a task:Task ;
-  dcterms:isPartOf <job> .
+  task:inputContainer <input-container> .
 
-<job> a cogs:Job ;
-  ext:shapeForTargets <shape-with-target-class> ;
+<input-container> a nfo:DataContainer ;
+  task:hasResource <shape-with-target-nodes> ;
   ext:graphForTargets <graph-uri> .
 
 <shape-with-target-class> a sh:NodeShape ;
   sh:targetClass <rdf-type> .
 ```
 
-Note, the predicates `ext:shapeForTargets` and `ext:graphForTargets` used above to link a job to its target shape and graph respectively can be configured. See the [configuration](#configuration) section for more information.
+Note, the predicate `ext:graphForTargets` used above is the default predicate to link to the graph in which to look for appropriate resources.  The [configuration](#configuration) allows for a different predicate to be set.
 
 ## Getting started
 ### How to add the service to your application
@@ -93,16 +92,12 @@ export default [
 ```
 
 ## Configuration
-This service is configured in two ways. First, a configuration file must be provided that specifies which types of job resources should be processed and how. Second, some environment variables can be configured. The following subsections document each of these in turn.
+This service is configured in two ways. First, a configuration file must be provided that specifies which types of task resources should be processed and how. Second, some environment variables can be configured. The following subsections document each of these in turn.
 
 ### Configuration file
+The configuration specifies which tasks should be split into tasks by this service. This repository contains a default [configuration file](./config.config.ts) that can be overwritten to suite the application at hand. Note, this service's configuration is structured similarly to that of the [job-controller](https://github.com/lblod/job-controller-service) service.
 
-> [!WARNING]
-> The configuration format allows to configure multiple split tasks per job. But these tasks will all use the single SHACL node shape linked to the parent job. One should refrain from modifying this SHACL node shape as part of a task, as this will lead to unpredictable splitting behaviour when multiple tasks do so in parallel.
-
-The configuration specifies which types of jobs should be split into tasks by this service. This repository contains a default [configuration file](./config.config.ts) that can be overwritten to suite the application at hand. Note, this service's configuration is structured similarly to that of the [job-controller](https://github.com/lblod/job-controller-service) service.
-
-The configuration should export a single object. It has to contain at least a mandatory `jobConfiguration` property. This property in turn contains properties specifying which combinations of jobs and tasks should be processed. Each contained property has as key a full URI of a job operation. Tasks that are not part of a job with either of these operations will be ignored. Furthermore, you can configure custom predicates linking jobs to their target shapes and graphs using `targetShapePredicate` and `targetGraphPredicate` respectively. This structure is illustrated in the following snippet:
+The configuration should export a single object. It has to contain at least a mandatory `jobConfiguration` property. This property in turn contains properties specifying which combinations of jobs and tasks should be processed. Each contained property has as key a full URI of a job operation. Tasks that are not part of a job with either of these operations will be ignored. Furthermore, you can configure custom predicate linking a task's input container to their target graph using `targetGraphPredicate`. This structure is illustrated in the following snippet:
 
 ```js
 export default {
@@ -114,16 +109,15 @@ export default {
       ...
     },
   },
-  // optional settings to overwrite the default values
-  targetShapePredicate: "http://predicate-for-target-shape",
+  // optional setting to overwrite the default value
   targetGraphPredicate: "http://predicate-for-target-graph",
 }
 ```
 
-Each job configuration property has to specify one or more task configuration properties. Such a task configuration contains the task operations of relevant tasks and maps them to follow-up operation. As before the the operations must be specified as full URIs. For example, the following snippet configures one task configuration for a job. It essentially means that when the service receives a task that (1) is part of job with operation `"http://lblod.data.gift/id/jobs/concept/JobOperation/some-job-operation"`; and (2) has as task operation the value for `currentOperation`.
+Each job configuration property has to specify one or more task configuration properties. Such a task configuration contains the task operations of relevant tasks and maps them to follow-up operation. As before the operations must be specified as full URIs. For example, the following snippet configures one task configuration for a job. It essentially means that when the service receives a task that (1) is part of job with operation `"http://lblod.data.gift/id/jobs/concept/JobOperation/some-job-operation"`; and (2) has as task operation the value for `currentOperation`.
 Then a follow-up task should be created with as task operation the value of `nextOperation`.
 
-Optionally, and only for jobs that have a `sh:targetClass` as its `ext:shapeForTargets`, a task configuration can add two additional filters for limiting the reach of scheduled tasks, so only a limited amount of tasks are spawned at a time. `resourceLimit` sets a limit to the number of resources of the defined class that are considered, while `resourceFilter` allows defining a SPARQL snippet that the resources must comply before this service creates a task for them. In the example below, the resources should be modified after a certain date.
+Optionally, and only for tasks that have a `sh:targetClass` in their target shape, a task configuration can add two additional filters for limiting the reach of scheduled tasks, so only a limited amount of tasks are spawned at a time. `resourceLimit` sets a limit to the number of resources of the defined class that are considered, while `resourceFilter` allows defining a SPARQL snippet that the resources must comply before this service creates a task for them. In the example below, the resources should have been modified after a certain date.
 
 ```js
 "http://lblod.data.gift/id/jobs/concept/JobOperation/some-job-operation": {
@@ -195,8 +189,7 @@ export default {
       ]
     },
   },
-  // optional settings to overwrite the default values
-  targetShapePredicate: "http://example.org/shape",
+  // optional setting to overwrite the default value
   targetGraphPredicate: "http://example.org/graph",
 };
 
