@@ -12,6 +12,7 @@ export const STATUS = {
 export const DEFAULT_BASE_URI = {
   HARVEST_COLLECTION: "http://lblod.data.gift/id/harvest-collections/",
   REMOTE_DATA_OBJECT: "http://lblod.data.gift/id/remote-data-objects/",
+  ERROR: "http://redpencil.data.gift/id/jobs/error/",
 };
 
 export const BATCH_SIZE = parseInt(process.env.BATCH_SIZE || "120");

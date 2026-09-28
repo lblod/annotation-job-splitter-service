@@ -13,7 +13,7 @@ import {
   uuid,
 } from "mu";
 import { InputContainer, Job, Shape, Task, TaskConfiguration } from "../types";
-import { getTaskOperations, isConfiguredTask } from "../util/config";
+import { getTaskOperations } from "../util/config";
 import {
   DEFAULT_BASE_URI,
   JOB_GRAPH,
@@ -59,6 +59,11 @@ function parseResult<T extends string[]>(result: SPARQLQueryResult<T>) {
 }
 
 export async function retrieveTaskData(uri: string) {
+  // NOTE (28/09/2026): The UNION clause in this query already checks whether a
+  // valid shape is linked in the input container of the task.  This allows to
+  // detect invalid tasks and failing them early on.  Otherwise, we would
+  // continue processing data for a task (object) that will later on when trying
+  // the retrieve the target shape.
   const taskDataRaw =
     await query(`PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
       PREFIX dcterms: <http://purl.org/dc/terms/>
@@ -79,9 +84,12 @@ export async function retrieveTaskData(uri: string) {
              task:operation ?jobOperation .
 
         ?inputContainer task:hasResource ?targetShape .
-        ?targetShape a sh:NodeShape ;
-                     sh:targetNode|sh:targetClass ?target .
-        OPTIONAL {
+
+        ?targetShape a sh:NodeShape .
+        {
+          ?targetShape sh:targetNode ?target .
+        } UNION {
+          ?targetShape sh:targetClass ?class .
           ?inputContainer task:hasGraph ?targetGraph .
         }
       }`);
@@ -94,31 +102,21 @@ export async function retrieveTaskData(uri: string) {
     const job = taskData.job
       ? ({ uri: taskData.job, operation: taskData.jobOperation } as Job)
       : undefined;
-    const inputContainer = taskData?.inputContainer
-      ? ({
-          uri: taskData.inputContainer,
-          // NOTE (25/09/2026): The above query ensures this is a suitable
-          // mostly ensures this is a URI of a valid shape.
-          resource: taskData.targetShape,
-          targetGraph: taskData.targetGraph,
-        } as InputContainer)
-      : undefined;
+    const inputContainer = {
+      uri: taskData.inputContainer,
+      resource: taskData.targetShape,
+      targetGraph: taskData.targetGraph,
+    } as InputContainer;
 
-    if (job && inputContainer) {
-      const task = {
-        uri: uri,
-        index: parseInt(taskData.index),
-        parentJob: job,
-        operation: taskData.operation,
-        input: inputContainer,
-      } as Task;
+    const task = {
+      uri: uri,
+      index: parseInt(taskData.index),
+      parentJob: job,
+      operation: taskData.operation,
+      input: inputContainer,
+    } as Task;
 
-      return isConfiguredTask(task) ? task : undefined;
-    }
-  } else {
-    console.info(
-      `\n>> INFO: ${uri} is not a task resource or a task resource without a target shape in an input container`,
-    );
+    return task;
   }
 }
 
@@ -295,10 +293,29 @@ async function sleep() {
   }
 }
 
-export async function updateTaskStatus(taskUri: string, newStatus: string) {
+export async function updateTaskStatus(
+  taskUri: string,
+  newStatus: string,
+  errorMsg?: string,
+) {
   const now = sparqlEscapeDateTime(new Date());
+
+  let error = "";
+  if (errorMsg && newStatus === STATUS.FAILED) {
+    const errorUuid = uuid();
+    const errorUri = DEFAULT_BASE_URI.ERROR + errorUuid;
+    error = `?task task:error ${sparqlEscapeUri(errorUri)} .
+      ${sparqlEscapeUri(errorUri)} a oslc:Error ;
+                                   mu:uuid ${sparqlEscapeString(errorUuid)} ;
+                                   oslc:message ${sparqlEscapeString(errorMsg)} .`;
+  }
+
   const insert = `PREFIX adms: <http://www.w3.org/ns/adms#>
     PREFIX dcterms: <http://purl.org/dc/terms/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX oslc: <http://open-services.net/ns/core#>
+    PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
+
     DELETE {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
         ?task adms:status ?status ;
@@ -309,6 +326,7 @@ export async function updateTaskStatus(taskUri: string, newStatus: string) {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
         ?task adms:status ${sparqlEscapeUri(newStatus)} ;
               dcterms:modified ${now} .
+        ${error}
       }
     }
     WHERE {
