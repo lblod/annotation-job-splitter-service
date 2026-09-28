@@ -58,6 +58,4 @@ export default {
         ],
       },
   },
-  // optional
-  // targetGraphPredicate: "http://mu.semte.ch/vocabularies/ext/graphForTargets",
 } as JobConfig;

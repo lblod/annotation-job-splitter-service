@@ -57,7 +57,6 @@ export type JobConfig = {
       taskConfiguration: TaskConfiguration[];
     };
   };
-  targetGraphPredicate?: string;
 };
 
 export type TaskConfiguration = {

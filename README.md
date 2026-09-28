@@ -41,13 +41,11 @@ In the second snippet below, the node shape linked to the task's target shape sp
 
 <input-container> a nfo:DataContainer ;
   task:hasResource <shape-with-target-nodes> ;
-  ext:graphForTargets <graph-uri> .
+  task:hasGraph <graph-uri> .
 
 <shape-with-target-class> a sh:NodeShape ;
   sh:targetClass <rdf-type> .
 ```
-
-Note, the predicate `ext:graphForTargets` used above is the default predicate to link to the graph in which to look for appropriate resources.  The [configuration](#configuration) allows for a different predicate to be set.
 
 ## Getting started
 ### How to add the service to your application
@@ -97,7 +95,7 @@ This service is configured in two ways. First, a configuration file must be prov
 ### Configuration file
 The configuration specifies which tasks should be split into tasks by this service. This repository contains a default [configuration file](./config.config.ts) that can be overwritten to suite the application at hand. Note, this service's configuration is structured similarly to that of the [job-controller](https://github.com/lblod/job-controller-service) service.
 
-The configuration should export a single object. It has to contain at least a mandatory `jobConfiguration` property. This property in turn contains properties specifying which combinations of jobs and tasks should be processed. Each contained property has as key a full URI of a job operation. Tasks that are not part of a job with either of these operations will be ignored. Furthermore, you can configure custom predicate linking a task's input container to their target graph using `targetGraphPredicate`. This structure is illustrated in the following snippet:
+The configuration should export a single object. It has to contain at least a mandatory `jobConfiguration` property. This property in turn contains properties specifying which combinations of jobs and tasks should be processed. Each contained property has as key a full URI of a job operation. Tasks that are not part of a job with either of these operations will be ignored. This structure is illustrated in the following snippet:
 
 ```js
 export default {
@@ -109,8 +107,6 @@ export default {
       ...
     },
   },
-  // optional setting to overwrite the default value
-  targetGraphPredicate: "http://predicate-for-target-graph",
 }
 ```
 
@@ -125,12 +121,13 @@ Optionally, and only for tasks that have a `sh:targetClass` in their target shap
     {
       currentOperation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/operation-for-input-task",
       nextOperation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/operation-for-created-tasks",
-      resourceLimit: 100, // optional: a limit for how many of these tasks to create if the job specifies its ext:shapeForTargets using a sh:targetClass
+      // optional: limit the number of considered resources for tasks whose
+      // target shape specify a sh:targetClass
+      resourceLimit: 100,
       resourceFilter: `
         ?resource <http://purl.org/dc/terms/modified> ?modified.
         FILTER(?modified > "2026-06-23"^^xsd:date)
-      ` // optional: filter to limit the resources considered if the job specifies its ext:shapeForTargets using a sh:targetClass
-    },
+     `},
   ...
   ]
 },
@@ -189,8 +186,6 @@ export default {
       ]
     },
   },
-  // optional setting to overwrite the default value
-  targetGraphPredicate: "http://example.org/graph",
 };
 
 ```
