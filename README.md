@@ -130,7 +130,7 @@ Optionally, and only for jobs that have a `sh:targetClass` as its `ext:shapeForT
   taskConfiguration: [
     {
       currentOperation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/operation-for-input-task",
-      nextOpertation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/operation-for-created-tasks",
+      nextOperation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/operation-for-created-tasks",
       resourceLimit: 100, // optional: a limit for how many of these tasks to create if the job specifies its ext:shapeForTargets using a sh:targetClass
       resourceFilter: `
         ?resource <http://purl.org/dc/terms/modified> ?modified.
@@ -153,7 +153,7 @@ For example, the following snippet configures a job with a single task configura
   taskConfiguration: [
     {
       currentOperation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/some-operation-for-input-task",
-      nextOpertation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/operation-for-task-requiring-harvesting-collection",
+      nextOperation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/operation-for-task-requiring-harvesting-collection",
       harvestingCollection: true
     },
   ...
@@ -189,7 +189,7 @@ export default {
       taskConfiguration: [
         {
           currentOperation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/some-operation-for-input-task",
-      nextOpertation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/operation-for-task-requiring-harvesting-collection",
+      nextOperation: "http://lblod.data.gift/id/jobs/concept/TaskOperation/operation-for-task-requiring-harvesting-collection",
           harvestingCollection: true
         },
       ]
