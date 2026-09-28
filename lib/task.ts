@@ -1,7 +1,11 @@
 import { uuid } from "mu";
-import { Job, Shape, Task, TaskConfiguration } from "../types";
+import { Job, Task, TaskConfiguration } from "../types";
 import { getTaskConfiguration } from "../util/config";
-import { completeJob, retrieveResourcesFromGraph } from "./queries";
+import {
+  completeJob,
+  retrieveResourcesFromGraph,
+  retrieveTargetShape,
+} from "./queries";
 
 const RESOURCE_BASE = {
   TASK: "http://redpencil.data.gift/id/task/",
@@ -34,32 +38,33 @@ export async function processTask(task: Task) {
 }
 
 async function listTargets(task: Task, taskConfiguration: TaskConfiguration) {
-  // TODO: This is icky
-  const shape = task.input.resource as Shape;
+  const shape = await retrieveTargetShape(task.input.resource);
 
-  let targets: string[];
-  // NOTE (18/04/2026): This assumes that it is not meaningful to specify both a
-  // `targetClass` as well as `targetNodes`.  Should both be specified, the
-  // `targetNodes` will simply be ignored.
-  if (shape.targetClass) {
-    // NOTE (22/04/2026): This assumes that a target graph is always specified.
-    // Otherwise, the called function will fail trying to escape an undefined
-    // graph URI.
-    targets = await retrieveResourcesFromGraph(
-      shape.targetClass,
-      task.parentJob.uri,
-      task.input.targetGraph,
-      taskConfiguration,
-    );
-  } else if (shape.targetNodes) {
-    targets = shape.targetNodes;
-  } else {
-    throw new Error(
-      `Misconfigured target shape, either targetClass or targetNodes is required`,
-    );
+  if (shape) {
+    let targets: string[];
+    // NOTE (18/04/2026): This assumes that it is not meaningful to specify both a
+    // `targetClass` as well as `targetNodes`.  Should both be specified, the
+    // `targetNodes` will simply be ignored.
+    if (shape.targetClass) {
+      // NOTE (22/04/2026): This assumes that a target graph is always specified.
+      // Otherwise, the called function will fail trying to escape an undefined
+      // graph URI.
+      targets = await retrieveResourcesFromGraph(
+        shape.targetClass,
+        task.parentJob.uri,
+        task.input.targetGraph,
+        taskConfiguration,
+      );
+    } else if (shape.targetNodes) {
+      targets = shape.targetNodes;
+    } else {
+      throw new Error(
+        `Misconfigured target shape, either targetClass or targetNodes is required`,
+      );
+    }
+
+    return targets;
   }
-
-  return targets;
 }
 
 function createTask(

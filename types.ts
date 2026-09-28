@@ -46,11 +46,7 @@ export type Task = {
 export type InputContainer = {
   uri: string;
   id: string;
-  // NOTE (24/09/2026): For incoming tasks require a Shape to be linked, but for
-  // created tasks we will just assign a resource URI.
-  // TODO: Can we avoid this or? Maybe retrieve shape at a later point in the
-  // flow, e.g. when its content is actually needed?
-  resource: Shape | string;
+  resource: string;
   targetGraph: string;
   harvestingCollection: boolean;
 };

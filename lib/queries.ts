@@ -95,18 +95,17 @@ export async function retrieveTaskData(uri: string) {
     const job = parsedData.job
       ? ({ uri: parsedData.job, operation: parsedData.jobOperation } as Job)
       : undefined;
-    const targetShape = parsedData.targetShape
-      ? await retrieveTargetShape(parsedData.targetShape)
-      : undefined;
     const inputContainer = parsedData?.inputContainer
       ? ({
           uri: parsedData.inputContainer,
-          resource: targetShape,
+          // NOTE (25/09/2026): The above query ensures this is a suitable
+          // mostly ensures this is a URI of a valid shape.
+          resource: parsedData.targetShape,
           targetGraph: parsedData.targetGraph,
         } as InputContainer)
       : undefined;
 
-    if (job && targetShape && inputContainer) {
+    if (job && inputContainer) {
       const task = {
         uri: uri,
         index: parseInt(parsedData.index),
