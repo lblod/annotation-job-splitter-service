@@ -170,13 +170,11 @@ export async function retrieveTargetShape(uri: string) {
   }
 }
 
-// TODO: The jobUri can be used by the resourceFilter, is there a way around
-// this?
 export async function retrieveResourcesFromGraph(
   type: string,
-  jobUri: string,
   graph: string,
   taskConfiguration: TaskConfiguration,
+  taskUri: string,
 ) {
   const resourceFilter = taskConfiguration.resourceFilter || "";
   const resourceLimit = taskConfiguration.resourceLimit || 0;
@@ -184,8 +182,8 @@ export async function retrieveResourcesFromGraph(
   const resourceUris = await query(`
     SELECT DISTINCT ?resource
     WHERE {
-      VALUES ?job {
-        ${sparqlEscapeUri(jobUri)}
+      VALUES ?task {
+        ${sparqlEscapeUri(taskUri)}
       }
       GRAPH ${sparqlEscapeUri(graph)} {
         ?resource a ${sparqlEscapeUri(type)} .
