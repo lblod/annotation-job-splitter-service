@@ -59,6 +59,9 @@ function parseResult<T extends string[]>(result: SPARQLQueryResult<T>) {
 }
 
 export async function retrieveTaskData(uri: string) {
+  // NOTE (28/09/2026): The UNION clause in this query already checks whether a
+  // valid shape is linked in the input container of the task.  This avoids we
+  // create tasks that will be thrown away in a later step anyway.
   const data =
     await query(`PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
       PREFIX dcterms: <http://purl.org/dc/terms/>
@@ -79,9 +82,12 @@ export async function retrieveTaskData(uri: string) {
              task:operation ?jobOperation .
 
         ?inputContainer task:hasResource ?targetShape .
-        ?targetShape a sh:NodeShape ;
-                     sh:targetNode|sh:targetClass ?target .
-        OPTIONAL {
+
+        ?targetShape a sh:NodeShape .
+        {
+          ?targetShape sh:targetNode ?target .
+        } UNION {
+          ?targetShape sh:targetClass ?class .
           ?inputContainer task:hasGraph ?targetGraph .
         }
       }`);
@@ -97,31 +103,23 @@ export async function retrieveTaskData(uri: string) {
     const inputContainer = parsedData?.inputContainer
       ? ({
           uri: parsedData.inputContainer,
-          // NOTE (25/09/2026): The above query ensures this is a suitable
-          // mostly ensures this is a URI of a valid shape.
           resource: parsedData.targetShape,
           targetGraph: parsedData.targetGraph,
         } as InputContainer)
       : undefined;
 
-    if (job && inputContainer) {
-      const task = {
-        uri: uri,
-        index: parseInt(parsedData.index),
-        parentJob: job,
-        operation: parsedData.operation,
-        input: inputContainer,
-      } as Task;
+    const task = {
+      uri: uri,
+      index: parseInt(parsedData.index),
+      parentJob: job,
+      operation: parsedData.operation,
+      input: inputContainer,
+    } as Task;
 
-      return isConfiguredTask(task) ? task : undefined;
-    } else {
-      console.info(
-        `\n>> INFO: ${uri} is not a task with a target shape in an input container`,
-      );
-    }
+    return isConfiguredTask(task) ? task : undefined;
   } else {
     console.info(
-      `\n>> INFO: ${uri} is not a task resource or a task resource without a target shape in an input container`,
+      `\n>> INFO: ${uri} is not a task resource or a task resource without a correct target shape in an input container`,
     );
   }
 }
