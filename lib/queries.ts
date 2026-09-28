@@ -19,7 +19,6 @@ import {
   JOB_GRAPH,
   SLEEP_BETWEEN_BATCHES,
   STATUS,
-  TARGET_GRAPH_PREDICATE,
   TASKS_PER_BATCH,
 } from "../util/constants";
 
@@ -83,7 +82,7 @@ export async function retrieveTaskData(uri: string) {
         ?targetShape a sh:NodeShape ;
                      sh:targetNode|sh:targetClass ?target .
         OPTIONAL {
-          ?inputContainer ${sparqlEscapeUri(TARGET_GRAPH_PREDICATE)} ?targetGraph .
+          ?inputContainer task:hasGraph ?targetGraph .
         }
       }`);
 
