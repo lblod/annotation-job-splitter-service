@@ -114,6 +114,10 @@ export async function retrieveTaskData(uri: string) {
       } as Task;
 
       return isConfiguredTask(task) ? task : undefined;
+    } else {
+      console.info(
+        `\n>> INFO: ${uri} is not a task with a target shape in an input container`,
+      );
     }
   } else {
     console.info(
