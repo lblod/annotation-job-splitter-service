@@ -55,15 +55,15 @@ async function listTargets(task: Task, taskConfiguration: TaskConfiguration) {
         task.input.targetGraph,
         taskConfiguration,
       );
-    } else if (shape.targetNodes) {
-      targets = shape.targetNodes;
     } else {
-      throw new Error(
-        `Misconfigured target shape, either targetClass or targetNodes is required`,
-      );
+      targets = shape.targetNodes;
     }
 
     return targets;
+  } else {
+    throw new Error(
+      `Incorrect target shape ${task.input.resource}, either targetClass or targetNodes is required`,
+    );
   }
 }
 
