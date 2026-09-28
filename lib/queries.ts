@@ -13,7 +13,7 @@ import {
   uuid,
 } from "mu";
 import { InputContainer, Job, Shape, Task, TaskConfiguration } from "../types";
-import { getTaskOperations, isConfiguredTask } from "../util/config";
+import { getTaskOperations } from "../util/config";
 import {
   DEFAULT_BASE_URI,
   JOB_GRAPH,
@@ -116,11 +116,7 @@ export async function retrieveTaskData(uri: string) {
       input: inputContainer,
     } as Task;
 
-    return isConfiguredTask(task) ? task : undefined;
-  } else {
-    console.info(
-      `\n>> INFO: ${uri} is not a task resource or a task resource without a correct target shape in an input container`,
-    );
+    return task;
   }
 }
 

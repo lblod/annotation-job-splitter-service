@@ -11,6 +11,7 @@ import {
 import { CronJob } from "cron";
 import { Task } from "./types";
 import { STATUS } from "./util/constants";
+import { isConfiguredTask } from "./util/config";
 
 app.get("/health", async function (_req, res) {
   res.send({ status: "ok" });
@@ -60,6 +61,10 @@ async function handleOpenTasks() {
   }
 }
 
+// TODO: Should we handle "incorrect" tasks better?  Presumably, task operations
+// are properly configured and no other service will pick up tasks with the
+// operation relevant for this service.  Maybe we should set tasks without shape
+// to done, so to avoid blocking the job if the shape is missing/incorrect?
 async function unsafeHandleOpenTasks() {
   const taskUris = await findOpenTaskUris();
 
@@ -68,16 +73,18 @@ async function unsafeHandleOpenTasks() {
     const task = await retrieveTaskData(taskUri);
 
     if (task) {
-      inputTasks.push(task);
-      await updateTaskStatus(taskUri, STATUS.BUSY);
+      // Check whether task is configured for its job
+      if (isConfiguredTask(task)) {
+        inputTasks.push(task);
+        await updateTaskStatus(taskUri, STATUS.BUSY);
+      } else {
+        console.info(
+          `\n>> INFO: Ignoring task ${taskUri} as its resource does not match a configured task`,
+        );
+      }
     } else {
-      // TODO: Should we handle "incorrect" tasks better?  Presumably, task
-      // operations are properly configured and no other service will pick up
-      // tasks with the operation relevant for this service.  Maybe we should
-      // set tasks without shape to done, so to avoid blocking the job if the
-      // shape is missing/incorrect?
       console.info(
-        `\n>> INFO: Ignoring task ${taskUri} as its resource does not match a configured task`,
+        `\n>> INFO: ${taskUri} is not a task resource or a task resource without a correct target shape in an input container`,
       );
     }
   }
