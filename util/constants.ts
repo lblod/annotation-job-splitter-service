@@ -1,5 +1,3 @@
-import config from "../config/config";
-
 export const JOB_GRAPH =
   process.env.JOB_GRAPH || "http://mu.semte.ch/graphs/harvesting";
 
@@ -15,17 +13,6 @@ export const DEFAULT_BASE_URI = {
   HARVEST_COLLECTION: "http://lblod.data.gift/id/harvest-collections/",
   REMOTE_DATA_OBJECT: "http://lblod.data.gift/id/remote-data-objects/",
 };
-
-const DEFAULT_PREDICATES = {
-  TARGET_SHAPE: "http://mu.semte.ch/vocabularies/ext/shapeForTargets",
-  TARGET_GRAPH: "http://mu.semte.ch/vocabularies/ext/graphForTargets",
-};
-
-export const TARGET_SHAPE_PREDICATE =
-  config["targetShapePredicate"] || DEFAULT_PREDICATES.TARGET_SHAPE;
-
-export const TARGET_GRAPH_PREDICATE =
-  config["targetGraphPredicate"] || DEFAULT_PREDICATES.TARGET_GRAPH;
 
 export const BATCH_SIZE = parseInt(process.env.BATCH_SIZE || "120");
 export const SLEEP_BETWEEN_BATCHES = parseInt(
