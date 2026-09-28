@@ -124,7 +124,7 @@ export async function retrieveTaskData(uri: string) {
 }
 
 export async function retrieveTargetShape(uri: string) {
-  const shape = await query(`PREFIX sh: <http://www.w3.org/ns/shacl#>
+  const shapeData = await query(`PREFIX sh: <http://www.w3.org/ns/shacl#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     SELECT DISTINCT ?shape ?class ?node
@@ -145,8 +145,8 @@ export async function retrieveTargetShape(uri: string) {
       }
     }`);
 
-  if (shape?.results?.bindings?.length) {
-    const { classes, nodes } = shape.results.bindings.reduce(
+  if (shapeData?.results?.bindings?.length) {
+    const { classes, nodes } = shapeData.results.bindings.reduce(
       (acc, binding) => {
         if (binding.class?.value) acc.classes.push(binding.class?.value);
         if (binding.node?.value) acc.nodes.push(binding.node?.value);
@@ -155,14 +155,18 @@ export async function retrieveTargetShape(uri: string) {
       { classes: [] as string[], nodes: [] as string[] },
     );
 
-    return {
-      uri: shape.results.bindings[0].shape?.value,
+    const shape = {
+      uri: shapeData.results.bindings[0].shape?.value,
       // NOTE (17/04/2026): Currently only a single target class can be specified
       // in the frontend.  To simplify the service's initial implementation we do
       // not support multiple target classes yet.
       targetClass: classes ? classes[0] : undefined,
       targetNodes: nodes,
     } as Shape;
+
+    if (shape.targetClass || shape.targetNodes?.length > 0) {
+      return shape;
+    }
   }
 }
 
