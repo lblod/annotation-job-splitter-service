@@ -51,9 +51,9 @@ async function listTargets(task: Task, taskConfiguration: TaskConfiguration) {
       // graph URI.
       targets = await retrieveResourcesFromGraph(
         shape.targetClass,
-        task.parentJob.uri,
         task.input.targetGraph,
         taskConfiguration,
+        task.uri,
       );
     } else {
       targets = shape.targetNodes;
