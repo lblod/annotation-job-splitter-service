@@ -17,9 +17,8 @@ import { getTaskOperations } from "../util/config";
 import {
   DEFAULT_BASE_URI,
   JOB_GRAPH,
-  SLEEP_BETWEEN_BATCHES,
+  SLEEP_BETWEEN_TASKS,
   STATUS,
-  TASKS_PER_BATCH,
 } from "../util/constants";
 
 // Adapted from the Job controller service
@@ -186,40 +185,42 @@ export async function retrieveResourcesFromGraph(
   );
 }
 
-export async function batchedInsertTasks(inputTask: Task, outputTasks: Task[]) {
-  for (let i = 0; i < outputTasks.length; i += TASKS_PER_BATCH) {
-    const tasksBatch = outputTasks.slice(i, i + TASKS_PER_BATCH);
-    console.info(
-      `\n>> INFO: Inserting tasks ${i} to ${i + tasksBatch.length - 1} out of ${outputTasks.length} for input task ${inputTask.uri}`,
-    );
-    await insertTasks(...tasksBatch);
-
-    if (i + TASKS_PER_BATCH < outputTasks.length) await sleep();
-  }
-
-  // Update the status of the input tasks as all output tasks are inserted
-  await updateTaskStatus(inputTask.uri, STATUS.SUCCESS);
-  console.info(`\n>> INFO: Completed task ${inputTask.uri}`);
-}
-
-function taskToTriples(task: Task) {
+async function insertTask(task: Task) {
   const now = sparqlEscapeDateTime(new Date());
+  const insert = `PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    PREFIX nfo: <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#>
+    PREFIX adms: <http://www.w3.org/ns/adms#>
+    PREFIX cogs: <http://vocab.deri.ie/cogs#>
+    PREFIX hrvst: <http://lblod.data.gift/vocabularies/harvesting/>
+    PREFIX nfo: <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#>
+    PREFIX nie: <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#>
+    INSERT DATA {
+      GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
+        ${sparqlEscapeUri(task.uri)} a task:Task ;
+                                     mu:uuid ${sparqlEscapeString(task.id)} ;
+                                     dcterms:isPartOf ${sparqlEscapeUri(task.parentJob)} ;
+                                     task:operation ${sparqlEscapeUri(task.operation)} ;
+                                     dcterms:created ${now} ;
+                                     dcterms:modified ${now} ;
+                                     adms:status ${sparqlEscapeUri(STATUS.PREPARING)} ;
+                                     cogs:dependsOn ${sparqlEscapeUri(task.dependsOn)} ;
+                                     task:index ${sparqlEscapeString(task.index.toString())} ;
+                                     task:inputContainer ${sparqlEscapeUri(task.input.uri)} .
 
-  const triples = `${sparqlEscapeUri(task.uri)} a task:Task ;
-    mu:uuid ${sparqlEscapeString(task.id)} ;
-    dcterms:isPartOf ${sparqlEscapeUri(task.parentJob)} ;
-    task:operation ${sparqlEscapeUri(task.operation)} ;
-    dcterms:created ${now} ;
-    dcterms:modified ${now} ;
-    cogs:dependsOn ${sparqlEscapeUri(task.dependsOn)} ;
-    adms:status ${sparqlEscapeUri(STATUS.SCHEDULED)} ;
-    task:index ${sparqlEscapeString(task.index.toString())} ;
-    task:inputContainer ${sparqlEscapeUri(task.input.uri)} .
+        ${inputContainerToTriples(task.input)}
+      }
+    }`;
 
-    ${inputContainerToTriples(task.input)}
-  `;
-
-  return triples;
+  try {
+    await update(insert);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (e: any) {
+    throw new Error(`${e.message}\n\nQuery that caused error:\n${insert}`, {
+      cause: e,
+    });
+  }
 }
 
 function inputContainerToTriples(container: InputContainer) {
@@ -250,21 +251,19 @@ function inputContainerToTriples(container: InputContainer) {
   }
 }
 
-async function insertTasks(...tasks: Task[]) {
-  const triplesToInsert = tasks.map((task) => taskToTriples(task)).join("\n");
-
+async function linkOtherInputContainers(inputTask: Task, outputTask: Task) {
   const insert = `PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-    PREFIX dcterms: <http://purl.org/dc/terms/>
-    PREFIX nfo: <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#>
-    PREFIX adms: <http://www.w3.org/ns/adms#>
-    PREFIX cogs: <http://vocab.deri.ie/cogs#>
-    PREFIX hrvst: <http://lblod.data.gift/vocabularies/harvesting/>
-    PREFIX nfo: <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#>
-    PREFIX nie: <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#>
-    INSERT DATA {
+    INSERT {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
-        ${triplesToInsert}
+        ${sparqlEscapeUri(outputTask.uri)} task:inputContainer ?inputContainer .
+      }
+    } WHERE {
+      GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
+        VALUES ?inputTask {
+          ${sparqlEscapeUri(inputTask.uri)}
+        }
+        ?inputTask task:inputContainer ?inputContainer .
+          FILTER (?inputContainer != ${sparqlEscapeUri(inputTask.input.uri)})
       }
     }`;
 
@@ -278,10 +277,28 @@ async function insertTasks(...tasks: Task[]) {
   }
 }
 
+// TODO: Update modified date for parent job? Is that necessary for each inserted task?
+export async function insertTasks(inputTask: Task, outputTasks: Task[]) {
+  for (const outputTask of outputTasks) {
+    // 1. Insert new task
+    await insertTask(outputTask);
+    // 2. Link additional input containers
+    await linkOtherInputContainers(inputTask, outputTask);
+    // 3. Update status task to scheduled so it can be picked up
+    await updateTaskStatus(outputTask.uri, STATUS.SCHEDULED);
+
+    // shortly sleep to avoid overloading triplestore
+    await sleep();
+  }
+
+  await updateTaskStatus(inputTask.uri, STATUS.SUCCESS);
+  console.info(`\n>> INFO: Completed task ${inputTask.uri}`);
+}
+
 async function sleep() {
-  if (SLEEP_BETWEEN_BATCHES > 0) {
-    console.info(`>> INFO: Sleeping for ${SLEEP_BETWEEN_BATCHES} ms.`);
-    return new Promise((resolve) => setTimeout(resolve, SLEEP_BETWEEN_BATCHES));
+  if (SLEEP_BETWEEN_TASKS > 0) {
+    console.info(`>> INFO: Sleeping for ${SLEEP_BETWEEN_TASKS} ms.`);
+    return new Promise((resolve) => setTimeout(resolve, SLEEP_BETWEEN_TASKS));
   }
 }
 
@@ -388,8 +405,7 @@ export async function findOpenTaskUris() {
       }
       ?task adms:status ${sparqlEscapeUri(STATUS.SCHEDULED)} ;
             task:operation ?operation .
-  }
-`);
+  }`);
 
   return result?.results.bindings?.map((b) => b.task.value) || [];
 }

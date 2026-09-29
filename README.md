@@ -174,8 +174,7 @@ export default [
 | Name                  | Description                                                                              | Default value                          |
 |-----------------------|------------------------------------------------------------------------------------------|----------------------------------------|
 | JOB_GRAPH             | The graph in which the service will look for jobs and insert created tasks               | "http://mu.semte.ch/graphs/harvesting" |
-| BATCH_SIZE            | The maximum number of triples inserted in a single query.                                | 120                                    |
-| SLEEP_BETWEEN_BATCHES | The time, in milliseconds, to sleep in between inserting two batches                     | 1000                                   |
+| SLEEP_BETWEEN_TASKS   | The time, in milliseconds, to sleep in between inserting two tasks                       | 1000                                   |
 | MISSED_DELTA_CRON     | Frequency with which to check for any missed delta messages, i.e. missed scheduled tasks | "27 */5 * * *"                         |
 
 ## API
@@ -186,3 +185,6 @@ Returns `{ "status": "ok" }` if the service is running.
 Endpoint on which delta messages from the `delta-notifier` are received for processing. This service expects delta messages in [v0.0.1 ](https://github.com/mu-semtech/delta-notifier/blob/master/README.md#L87) format. When receiving a delta message, the service will query the triplestore to check for any relevant open tasks. The delta message itself is only used as a trigger, its contents are not actually used.
 
 The service will respond with a `200` if it successfully received the delta and **initiated** the process to look for open tasks. This does **not** mean that it necessarily will create new tasks, there may not be any relevant open tasks. Similarly, if there are relevant open tasks, the reply does **not** mean that all new task resources have been inserted into the triplestore. Inserting a large amount of task resources takes some time, we opted not to keep the connection open the entire time. The status of the input tasks will be updated to `success` once all new tasks have been inserted.
+
+## Caveats
+Any additional input containers linked to an incoming task that do not contain a target shape will be linked to each created task. The service that processes the created tasks is responsible properly handle that multiple tasks have the same input containers.
