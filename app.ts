@@ -2,9 +2,9 @@ import bodyParser from "body-parser";
 import { app, errorHandler } from "mu";
 import { processTask } from "./lib/task";
 import {
-  batchedInsertTasks,
   failBusyTasks,
   findOpenTaskUris,
+  insertTasks,
   retrieveTaskData,
   updateTaskStatus,
 } from "./lib/queries";
@@ -87,17 +87,16 @@ async function unsafeHandleOpenTasks() {
       return { inputTask: task, outputTasks: await processTask(task) };
     }),
   );
+
   await Promise.all(
     outputTasks.map((tasks) => {
-      return batchedInsertTasks(tasks.inputTask, tasks.outputTasks).catch(
-        (error) => {
-          console.log(
-            `\n>> ERROR: Something went wrong while inserting tasks for ${tasks.inputTask.uri}`,
-          );
-          console.error(error);
-          throw error;
-        },
-      );
+      return insertTasks(tasks.inputTask, tasks.outputTasks).catch((error) => {
+        console.log(
+          `\n>> ERROR: Something went wrong while inserting tasks for ${tasks.inputTask.uri}`,
+        );
+        console.error(error);
+        throw error;
+      });
     }),
   );
 
