@@ -12,7 +12,7 @@ import {
   sparqlEscapeUri,
   uuid,
 } from "mu";
-import { InputContainer, Job, Shape, Task, TaskConfiguration } from "../types";
+import { InputContainer, Shape, Task, TaskConfiguration } from "../types";
 import { getTaskOperations } from "../util/config";
 import {
   DEFAULT_BASE_URI,
@@ -69,7 +69,7 @@ export async function retrieveTaskData(uri: string) {
       PREFIX dcterms: <http://purl.org/dc/terms/>
       PREFIX sh: <http://www.w3.org/ns/shacl#>
       PREFIX cogs: <http://vocab.deri.ie/cogs#>
-      SELECT DISTINCT ?task ?index ?operation ?inputContainer ?targetShape ?targetGraph ?job ?jobOperation
+      SELECT DISTINCT ?task ?index ?operation ?inputContainer ?targetShape ?targetGraph ?job
       WHERE {
         VALUES ?task {
           ${sparqlEscapeUri(uri)}
@@ -79,9 +79,6 @@ export async function retrieveTaskData(uri: string) {
               dcterms:isPartOf ?job ;
               task:operation ?operation ;
               task:inputContainer ?inputContainer .
-
-        ?job a cogs:Job ;
-             task:operation ?jobOperation .
 
         ?inputContainer task:hasResource ?targetShape .
 
@@ -97,11 +94,6 @@ export async function retrieveTaskData(uri: string) {
   const taskData = parseResult(taskDataRaw!)[0];
 
   if (taskData) {
-    // TODO: Currently the job is also used in the configuration.  Is this still
-    // necessary?  Might be cleaner if we can ignore the parent job altogether.
-    const job = taskData.job
-      ? ({ uri: taskData.job, operation: taskData.jobOperation } as Job)
-      : undefined;
     const inputContainer = {
       uri: taskData.inputContainer,
       resource: taskData.targetShape,
@@ -111,7 +103,7 @@ export async function retrieveTaskData(uri: string) {
     const task = {
       uri: uri,
       index: parseInt(taskData.index),
-      parentJob: job,
+      parentJob: taskData.job,
       operation: taskData.operation,
       input: inputContainer,
     } as Task;
@@ -215,7 +207,7 @@ function taskToTriples(task: Task) {
 
   const triples = `${sparqlEscapeUri(task.uri)} a task:Task ;
     mu:uuid ${sparqlEscapeString(task.id)} ;
-    dcterms:isPartOf ${sparqlEscapeUri(task.parentJob.uri)} ;
+    dcterms:isPartOf ${sparqlEscapeUri(task.parentJob)} ;
     task:operation ${sparqlEscapeUri(task.operation)} ;
     dcterms:created ${now} ;
     dcterms:modified ${now} ;
@@ -355,7 +347,7 @@ export async function completeJob(task: Task) {
     DELETE {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
         ?job adms:status ?status ;
-              dcterms:modified ?modified .
+             dcterms:modified ?modified .
       }
     }
     INSERT {

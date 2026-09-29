@@ -16,11 +16,6 @@ export type Quad = {
   graph: Term;
 };
 
-export type Job = {
-  uri: string;
-  operation: string;
-};
-
 export type Shape =
   | {
       uri: string;
@@ -37,7 +32,7 @@ export type Task = {
   uri: string;
   id: string;
   index: number;
-  parentJob: Job;
+  parentJob: string;
   operation: string;
   input: InputContainer;
   dependsOn: string;
@@ -49,14 +44,6 @@ export type InputContainer = {
   resource: string;
   targetGraph: string;
   harvestingCollection: boolean;
-};
-
-export type JobConfig = {
-  jobConfiguration: {
-    [key: string]: {
-      taskConfiguration: TaskConfiguration[];
-    };
-  };
 };
 
 export type TaskConfiguration = {

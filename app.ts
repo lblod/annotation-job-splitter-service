@@ -11,7 +11,6 @@ import {
 import { CronJob } from "cron";
 import { Task } from "./types";
 import { STATUS } from "./util/constants";
-import { isConfiguredTask } from "./util/config";
 
 app.get("/health", async function (_req, res) {
   res.send({ status: "ok" });
@@ -69,15 +68,8 @@ async function unsafeHandleOpenTasks() {
     const task = await retrieveTaskData(taskUri);
 
     if (task) {
-      // Check whether task is configured for its job
-      if (isConfiguredTask(task)) {
-        inputTasks.push(task);
-        await updateTaskStatus(taskUri, STATUS.BUSY);
-      } else {
-        console.info(
-          `\n>> INFO: Ignoring task ${taskUri} as its resource does not match a configured task`,
-        );
-      }
+      inputTasks.push(task);
+      await updateTaskStatus(taskUri, STATUS.BUSY);
     } else {
       console.log(
         `\n>> INFO: ${taskUri} is not a task resource or a task resource without a correct target shape in an input container`,
