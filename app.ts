@@ -60,10 +60,6 @@ async function handleOpenTasks() {
   }
 }
 
-// TODO: Should we handle "incorrect" tasks better?  Presumably, task operations
-// are properly configured and no other service will pick up tasks with the
-// operation relevant for this service.  Maybe we should set tasks without shape
-// to done, so to avoid blocking the job if the shape is missing/incorrect?
 async function unsafeHandleOpenTasks() {
   const taskUris = await findOpenTaskUris();
 
@@ -75,8 +71,13 @@ async function unsafeHandleOpenTasks() {
       inputTasks.push(task);
       await updateTaskStatus(taskUri, STATUS.BUSY);
     } else {
-      console.info(
+      console.log(
         `\n>> INFO: ${taskUri} is not a task resource or a task resource without a correct target shape in an input container`,
+      );
+      await updateTaskStatus(
+        taskUri,
+        STATUS.FAILED,
+        "Not a resource task or a task resource without a correct target shape in an input container",
       );
     }
   }

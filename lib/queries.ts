@@ -285,10 +285,29 @@ async function sleep() {
   }
 }
 
-export async function updateTaskStatus(taskUri: string, newStatus: string) {
+export async function updateTaskStatus(
+  taskUri: string,
+  newStatus: string,
+  errorMsg?: string,
+) {
   const now = sparqlEscapeDateTime(new Date());
+
+  let error = "";
+  if (errorMsg && newStatus === STATUS.FAILED) {
+    const errorUuid = uuid();
+    const errorUri = DEFAULT_BASE_URI.ERROR + errorUuid;
+    error = `?task task:error ${sparqlEscapeUri(errorUri)} .
+      ${sparqlEscapeUri(errorUri)} a oslc:Error ;
+                                   mu:uuid ${sparqlEscapeString(errorUuid)} ;
+                                   oslc:message ${sparqlEscapeString(errorMsg)} .`;
+  }
+
   const insert = `PREFIX adms: <http://www.w3.org/ns/adms#>
     PREFIX dcterms: <http://purl.org/dc/terms/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX oslc: <http://open-services.net/ns/core#>
+    PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
+
     DELETE {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
         ?task adms:status ?status ;
@@ -299,6 +318,7 @@ export async function updateTaskStatus(taskUri: string, newStatus: string) {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
         ?task adms:status ${sparqlEscapeUri(newStatus)} ;
               dcterms:modified ${now} .
+        ${error}
       }
     }
     WHERE {
