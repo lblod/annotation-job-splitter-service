@@ -1,5 +1,5 @@
 import { uuid } from "mu";
-import { Job, Task, TaskConfiguration } from "../types";
+import { Task, TaskConfiguration } from "../types";
 import { getTaskConfiguration } from "../util/config";
 import {
   completeJob,
@@ -68,7 +68,7 @@ async function listTargets(task: Task, taskConfiguration: TaskConfiguration) {
 }
 
 function createTask(
-  parentJob: Job,
+  parentJob: string,
   target: string,
   index: number,
   dependsOn: string,

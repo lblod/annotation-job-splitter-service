@@ -12,7 +12,7 @@ import {
   sparqlEscapeUri,
   uuid,
 } from "mu";
-import { InputContainer, Job, Shape, Task, TaskConfiguration } from "../types";
+import { InputContainer, Shape, Task, TaskConfiguration } from "../types";
 import { getTaskOperations } from "../util/config";
 import {
   DEFAULT_BASE_URI,
@@ -78,9 +78,6 @@ export async function retrieveTaskData(uri: string) {
               task:operation ?operation ;
               task:inputContainer ?inputContainer .
 
-        ?job a cogs:Job ;
-             task:operation ?jobOperation .
-
         ?inputContainer task:hasResource ?targetShape .
 
         ?targetShape a sh:NodeShape .
@@ -95,11 +92,6 @@ export async function retrieveTaskData(uri: string) {
   const parsedData = parseResult(data!)[0];
 
   if (parsedData) {
-    // TODO: Currently the job is also used in the configuration.  Is this still
-    // necessary?  Might be cleaner if we can ignore the parent job altogether.
-    const job = parsedData.job
-      ? ({ uri: parsedData.job, operation: parsedData.jobOperation } as Job)
-      : undefined;
     const inputContainer = parsedData?.inputContainer
       ? ({
           uri: parsedData.inputContainer,
@@ -111,7 +103,7 @@ export async function retrieveTaskData(uri: string) {
     const task = {
       uri: uri,
       index: parseInt(parsedData.index),
-      parentJob: job,
+      parentJob: parsedData.job,
       operation: parsedData.operation,
       input: inputContainer,
     } as Task;
@@ -215,7 +207,7 @@ function taskToTriples(task: Task) {
 
   const triples = `${sparqlEscapeUri(task.uri)} a task:Task ;
     mu:uuid ${sparqlEscapeString(task.id)} ;
-    dcterms:isPartOf ${sparqlEscapeUri(task.parentJob.uri)} ;
+    dcterms:isPartOf ${sparqlEscapeUri(task.parentJob)} ;
     task:operation ${sparqlEscapeUri(task.operation)} ;
     dcterms:created ${now} ;
     dcterms:modified ${now} ;
@@ -335,7 +327,7 @@ export async function completeJob(task: Task) {
     DELETE {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
         ?job adms:status ?status ;
-              dcterms:modified ?modified .
+             dcterms:modified ?modified .
       }
     }
     INSERT {
