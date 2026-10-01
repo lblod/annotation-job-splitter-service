@@ -187,4 +187,5 @@ Endpoint on which delta messages from the `delta-notifier` are received for proc
 The service will respond with a `200` if it successfully received the delta and **initiated** the process to look for open tasks. This does **not** mean that it necessarily will create new tasks, there may not be any relevant open tasks. Similarly, if there are relevant open tasks, the reply does **not** mean that all new task resources have been inserted into the triplestore. Inserting a large amount of task resources takes some time, we opted not to keep the connection open the entire time. The status of the input tasks will be updated to `success` once all new tasks have been inserted.
 
 ## Caveats
-Any additional input containers linked to an incoming task that do not contain a target shape will be linked to each created task. The service that processes the created tasks is responsible properly handle that multiple tasks have the same input containers.
+- This service expects the jobs and tasks to be stored in single graph.
+- Any additional input containers linked to an incoming task that do not contain a target shape will be linked to each created task. The service that processes the created tasks is responsible properly handle that multiple tasks have the same input containers.
