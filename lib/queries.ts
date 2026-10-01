@@ -197,19 +197,36 @@ async function insertTask(task: Task) {
     PREFIX nfo: <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#>
     PREFIX nie: <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#>
     INSERT DATA {
+    DELETE {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
-        ${sparqlEscapeUri(task.uri)} a task:Task ;
-                                     mu:uuid ${sparqlEscapeString(task.id)} ;
-                                     dcterms:isPartOf ${sparqlEscapeUri(task.parentJob)} ;
-                                     task:operation ${sparqlEscapeUri(task.operation)} ;
-                                     dcterms:created ${now} ;
-                                     dcterms:modified ${now} ;
-                                     adms:status ${sparqlEscapeUri(STATUS.PREPARING)} ;
-                                     cogs:dependsOn ${sparqlEscapeUri(task.dependsOn)} ;
-                                     task:index ${sparqlEscapeString(task.index.toString())} ;
-                                     task:inputContainer ${sparqlEscapeUri(task.input.uri)} .
+        ?job dcterms:modified ?jobModified .
+      }
+    } INSERT {
+      GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
+        ?task a task:Task ;
+              mu:uuid ${sparqlEscapeString(task.id)} ;
+              dcterms:isPartOf ?job ;
+              task:operation ${sparqlEscapeUri(task.operation)} ;
+              dcterms:created ${now} ;
+              dcterms:modified ${now} ;
+              adms:status ${sparqlEscapeUri(STATUS.PREPARING)} ;
+              cogs:dependsOn ${sparqlEscapeUri(task.dependsOn)} ;
+              task:index ${sparqlEscapeString(task.index.toString())} ;
+              task:inputContainer ${sparqlEscapeUri(task.input.uri)} .
 
         ${inputContainerToTriples(task.input)}
+
+        ?job dcterms:modified ${now} .
+      }
+    } WHERE {
+      VALUES ?task {
+        ${sparqlEscapeUri(task.uri)}
+      }
+      VALUES ?job {
+        ${sparqlEscapeUri(task.parentJob)}
+      }
+      GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
+        OPTIONAL { ?job dcterms:modified ?jobModified . }
       }
     }`;
 
@@ -277,7 +294,6 @@ async function linkOtherInputContainers(inputTask: Task, outputTask: Task) {
   }
 }
 
-// TODO: Update modified date for parent job? Is that necessary for each inserted task?
 export async function insertTasks(inputTask: Task, outputTasks: Task[]) {
   for (const outputTask of outputTasks) {
     // 1. Insert new task
