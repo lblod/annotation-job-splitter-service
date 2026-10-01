@@ -18,6 +18,7 @@ import {
   DEFAULT_BASE_URI,
   JOB_GRAPH,
   SLEEP_BETWEEN_TASKS,
+  SPARQL_PREFIXES,
   STATUS,
 } from "../util/constants";
 
@@ -63,11 +64,7 @@ export async function retrieveTaskData(uri: string) {
   // detect invalid tasks and failing them early on.  Otherwise, we would
   // continue processing data for a task (object) that will later on when trying
   // the retrieve the target shape.
-  const taskDataRaw =
-    await query(`PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
-      PREFIX dcterms: <http://purl.org/dc/terms/>
-      PREFIX sh: <http://www.w3.org/ns/shacl#>
-      PREFIX cogs: <http://vocab.deri.ie/cogs#>
+  const taskDataRaw = await query(`${SPARQL_PREFIXES}
       SELECT DISTINCT ?task ?index ?operation ?inputContainer ?targetShape ?targetGraph ?job
       WHERE {
         VALUES ?task {
@@ -112,9 +109,7 @@ export async function retrieveTaskData(uri: string) {
 }
 
 export async function retrieveTargetShape(uri: string) {
-  const shapeData = await query(`PREFIX sh: <http://www.w3.org/ns/shacl#>
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-
+  const shapeData = await query(`${SPARQL_PREFIXES}
     SELECT DISTINCT ?shape ?class ?node
     WHERE {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
@@ -187,15 +182,7 @@ export async function retrieveResourcesFromGraph(
 
 async function insertTask(task: Task) {
   const now = sparqlEscapeDateTime(new Date());
-  const insert = `PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-    PREFIX dcterms: <http://purl.org/dc/terms/>
-    PREFIX nfo: <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#>
-    PREFIX adms: <http://www.w3.org/ns/adms#>
-    PREFIX cogs: <http://vocab.deri.ie/cogs#>
-    PREFIX hrvst: <http://lblod.data.gift/vocabularies/harvesting/>
-    PREFIX nfo: <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#>
-    PREFIX nie: <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#>
+  const insert = `${SPARQL_PREFIXES}
     DELETE {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
         ?job dcterms:modified ?jobModified .
@@ -268,7 +255,7 @@ function inputContainerToTriples(container: InputContainer) {
 }
 
 async function linkOtherInputContainers(inputTask: Task, outputTask: Task) {
-  const insert = `PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
+  const insert = `${SPARQL_PREFIXES}
     INSERT {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
         ${sparqlEscapeUri(outputTask.uri)} task:inputContainer ?inputContainer .
@@ -334,12 +321,7 @@ export async function updateTaskStatus(
                                    oslc:message ${sparqlEscapeString(errorMsg)} .`;
   }
 
-  const insert = `PREFIX adms: <http://www.w3.org/ns/adms#>
-    PREFIX dcterms: <http://purl.org/dc/terms/>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-    PREFIX oslc: <http://open-services.net/ns/core#>
-    PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
-
+  const insert = `${SPARQL_PREFIXES}
     DELETE {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
         ?task adms:status ?status ;
@@ -374,8 +356,7 @@ export async function updateTaskStatus(
 
 export async function completeJob(task: Task) {
   const now = sparqlEscapeDateTime(new Date());
-  const insert = `PREFIX adms: <http://www.w3.org/ns/adms#>
-    PREFIX dcterms: <http://purl.org/dc/terms/>
+  const insert = `${SPARQL_PREFIXES}
     DELETE {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
         ?job adms:status ?status ;
@@ -412,8 +393,7 @@ export async function findOpenTaskUris() {
   const targetOperations = getTaskOperations();
   const safeTargetOpsValues = targetOperations.map(sparqlEscapeUri).join("\n");
 
-  const result = await query(`PREFIX adms: <http://www.w3.org/ns/adms#>
-    PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
+  const result = await query(`${SPARQL_PREFIXES}
     SELECT DISTINCT ?task WHERE {
       VALUES ?operation {
         ${safeTargetOpsValues}
@@ -428,9 +408,7 @@ export async function findOpenTaskUris() {
 export async function failBusyTasks() {
   const targetOperations = getTaskOperations();
   const safeTargetOpsValues = targetOperations.map(sparqlEscapeUri).join("\n");
-  await update(`PREFIX adms: <http://www.w3.org/ns/adms#>
-    PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
-    PREFIX dcterms: <http://purl.org/dc/terms/>
+  await update(`${SPARQL_PREFIXES}
     DELETE {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
         ?task adms:status ${sparqlEscapeUri(STATUS.BUSY)} ;
