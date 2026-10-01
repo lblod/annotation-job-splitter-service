@@ -277,7 +277,6 @@ async function linkOtherInputContainers(inputTask: Task, outputTask: Task) {
   }
 }
 
-// TODO: Update modified date for parent job? Is that necessary for each inserted task?
 export async function insertTasks(inputTask: Task, outputTasks: Task[]) {
   for (const outputTask of outputTasks) {
     // 1. Insert new task
@@ -329,6 +328,7 @@ export async function updateTaskStatus(
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
         ?task adms:status ?status ;
               dcterms:modified ?modified .
+        ?job dcterms:modified ?jobModified .
       }
     }
     INSERT {
@@ -336,6 +336,8 @@ export async function updateTaskStatus(
         ?task adms:status ${sparqlEscapeUri(newStatus)} ;
               dcterms:modified ${now} .
         ${error}
+
+        ?job dcterms:modified ${now} .
       }
     }
     WHERE {
@@ -343,8 +345,10 @@ export async function updateTaskStatus(
         VALUES ?task {
           ${sparqlEscapeUri(taskUri)}
         }
-        ?task adms:status ?status .
+        ?task adms:status ?status ;
+              dcterms:isPartOf ?job .
         OPTIONAL { ?task dcterms:modified ?modified . }
+        OPTIONAL { ?job dcterms:modified ?jobModified . }
       }
     }`;
   try {
