@@ -1,5 +1,6 @@
 # Changelog
 ## Unreleased
+- [#15](https://github.com/lblod/annotation-job-splitter-service/pull/15) Link target shapes to task resources instead of job resources
 
 ## v0.0.10 (2026-08-28)
 - [#13](https://github.com/lblod/annotation-job-splitter-service/pull/13) removed unnecessary constant
