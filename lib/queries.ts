@@ -12,16 +12,14 @@ import {
   sparqlEscapeUri,
   uuid,
 } from "mu";
-import { InputContainer, Job, Shape, Task, TaskConfiguration } from "../types";
-import { getTaskOperations, isConfiguredTask } from "../util/config";
+import { InputContainer, Shape, Task, TaskConfiguration } from "../types";
+import { getTaskOperations } from "../util/config";
 import {
   DEFAULT_BASE_URI,
   JOB_GRAPH,
-  SLEEP_BETWEEN_BATCHES,
+  SLEEP_BETWEEN_TASKS,
+  SPARQL_PREFIXES,
   STATUS,
-  TARGET_GRAPH_PREDICATE,
-  TARGET_SHAPE_PREDICATE,
-  TASKS_PER_BATCH,
 } from "../util/constants";
 
 // Adapted from the Job controller service
@@ -61,10 +59,11 @@ function parseResult<T extends string[]>(result: SPARQLQueryResult<T>) {
 }
 
 export async function retrieveTaskData(uri: string) {
-  const task =
-    await query(`PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
-      PREFIX dcterms: <http://purl.org/dc/terms/>
-      SELECT DISTINCT ?task ?index ?job ?operation
+  // NOTE (28/09/2026): The UNION clause in this query already checks whether a
+  // valid shape is linked in the input container of the task.  This avoids we
+  // create tasks that will be thrown away in a later step anyway.
+  const data = await query(`${SPARQL_PREFIXES}
+      SELECT DISTINCT ?task ?index ?operation ?inputContainer ?targetShape ?targetGraph ?job ?jobOperation
       WHERE {
         VALUES ?task {
           ${sparqlEscapeUri(uri)}
@@ -72,67 +71,45 @@ export async function retrieveTaskData(uri: string) {
         ?task a task:Task ;
               task:index ?index ;
               dcterms:isPartOf ?job ;
-              task:operation ?operation .
-    }`);
+              task:operation ?operation ;
+              task:inputContainer ?inputContainer .
 
-  const taskData = parseResult(task!)[0];
-  const job = taskData?.job ? await retrieveJob(taskData.job) : undefined;
+        ?inputContainer task:hasResource ?targetShape .
 
-  if (job) {
+        ?targetShape a sh:NodeShape .
+        {
+          ?targetShape sh:targetNode ?target .
+        } UNION {
+          ?targetShape sh:targetClass ?class .
+          ?inputContainer task:hasGraph ?targetGraph .
+        }
+      }`);
+
+  const parsedData = parseResult(data!)[0];
+
+  if (parsedData) {
+    const inputContainer = parsedData?.inputContainer
+      ? ({
+          uri: parsedData.inputContainer,
+          resource: parsedData.targetShape,
+          targetGraph: parsedData.targetGraph,
+        } as InputContainer)
+      : undefined;
+
     const task = {
       uri: uri,
-      index: parseInt(taskData.index),
-      parentJob: job,
-      operation: taskData.operation,
+      index: parseInt(parsedData.index),
+      parentJob: parsedData.job,
+      operation: parsedData.operation,
+      input: inputContainer,
     } as Task;
 
-    return isConfiguredTask(task) ? task : undefined;
-  }
-}
-
-async function retrieveJob(uri: string) {
-  const job = await query(`PREFIX cogs: <http://vocab.deri.ie/cogs#>
-    PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
-    SELECT DISTINCT ?job ?operation ?targetShape ?targetGraph
-    WHERE {
-      GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
-        VALUES ?job {
-          ${sparqlEscapeUri(uri)}
-        }
-        ?job a cogs:Job ;
-             task:operation ?operation .
-        OPTIONAL {
-          ?job ${sparqlEscapeUri(TARGET_SHAPE_PREDICATE)} ?targetShape .
-        }
-        OPTIONAL {
-          ?job ${sparqlEscapeUri(TARGET_GRAPH_PREDICATE)} ?targetGraph .
-        }
-      }
-    }`);
-
-  const jobData = parseResult(job!)[0];
-  const shape = jobData?.targetShape
-    ? await retrieveTargetShape(jobData.targetShape)
-    : undefined;
-
-  if (shape) {
-    return {
-      uri: uri,
-      operation: jobData.operation,
-      targetShape: shape,
-      targetGraph: jobData.targetGraph,
-    } as Job;
-  } else {
-    console.info(
-      `\n>> INFO: ${uri} is not a job resource or a job resource without a target shape`,
-    );
+    return task;
   }
 }
 
 export async function retrieveTargetShape(uri: string) {
-  const shape = await query(`PREFIX sh: <http://www.w3.org/ns/shacl#>
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-
+  const shapeData = await query(`${SPARQL_PREFIXES}
     SELECT DISTINCT ?shape ?class ?node
     WHERE {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
@@ -151,8 +128,8 @@ export async function retrieveTargetShape(uri: string) {
       }
     }`);
 
-  if (shape?.results?.bindings?.length) {
-    const { classes, nodes } = shape.results.bindings.reduce(
+  if (shapeData?.results?.bindings?.length) {
+    const { classes, nodes } = shapeData.results.bindings.reduce(
       (acc, binding) => {
         if (binding.class?.value) acc.classes.push(binding.class?.value);
         if (binding.node?.value) acc.nodes.push(binding.node?.value);
@@ -161,22 +138,26 @@ export async function retrieveTargetShape(uri: string) {
       { classes: [] as string[], nodes: [] as string[] },
     );
 
-    return {
-      uri: shape.results.bindings[0].shape?.value,
+    const shape = {
+      uri: shapeData.results.bindings[0].shape?.value,
       // NOTE (17/04/2026): Currently only a single target class can be specified
       // in the frontend.  To simplify the service's initial implementation we do
       // not support multiple target classes yet.
       targetClass: classes ? classes[0] : undefined,
       targetNodes: nodes,
     } as Shape;
+
+    if (shape.targetClass || shape.targetNodes?.length > 0) {
+      return shape;
+    }
   }
 }
 
 export async function retrieveResourcesFromGraph(
   type: string,
-  jobUri: string,
   graph: string,
   taskConfiguration: TaskConfiguration,
+  taskUri: string,
 ) {
   const resourceFilter = taskConfiguration.resourceFilter || "";
   const resourceLimit = taskConfiguration.resourceLimit || 0;
@@ -184,8 +165,8 @@ export async function retrieveResourcesFromGraph(
   const resourceUris = await query(`
     SELECT DISTINCT ?resource
     WHERE {
-      VALUES ?job {
-        ${sparqlEscapeUri(jobUri)}
+      VALUES ?task {
+        ${sparqlEscapeUri(taskUri)}
       }
       GRAPH ${sparqlEscapeUri(graph)} {
         ?resource a ${sparqlEscapeUri(type)} .
@@ -199,40 +180,34 @@ export async function retrieveResourcesFromGraph(
   );
 }
 
-export async function batchedInsertTasks(inputTask: Task, outputTasks: Task[]) {
-  for (let i = 0; i < outputTasks.length; i += TASKS_PER_BATCH) {
-    const tasksBatch = outputTasks.slice(i, i + TASKS_PER_BATCH);
-    console.info(
-      `\n>> INFO: Inserting tasks ${i} to ${i + tasksBatch.length - 1} out of ${outputTasks.length} for input task ${inputTask.uri}`,
-    );
-    await insertTasks(...tasksBatch);
-
-    if (i + TASKS_PER_BATCH < outputTasks.length) await sleep();
-  }
-
-  // Update the status of the input tasks as all output tasks are inserted
-  await updateTaskStatus(inputTask.uri, STATUS.SUCCESS);
-  console.info(`\n>> INFO: Completed task ${inputTask.uri}`);
-}
-
-function taskToTriples(task: Task) {
+async function insertTask(task: Task) {
   const now = sparqlEscapeDateTime(new Date());
+  const insert = `${SPARQL_PREFIXES}
+    INSERT DATA {
+      GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
+        ${sparqlEscapeUri(task.uri)} a task:Task ;
+                                     mu:uuid ${sparqlEscapeString(task.id)} ;
+                                     dcterms:isPartOf ${sparqlEscapeUri(task.parentJob)} ;
+                                     task:operation ${sparqlEscapeUri(task.operation)} ;
+                                     dcterms:created ${now} ;
+                                     dcterms:modified ${now} ;
+                                     adms:status ${sparqlEscapeUri(STATUS.PREPARING)} ;
+                                     cogs:dependsOn ${sparqlEscapeUri(task.dependsOn)} ;
+                                     task:index ${sparqlEscapeString(task.index.toString())} ;
+                                     task:inputContainer ${sparqlEscapeUri(task.input.uri)} .
 
-  const triples = `${sparqlEscapeUri(task.uri)} a task:Task ;
-    mu:uuid ${sparqlEscapeString(task.id)} ;
-    dcterms:isPartOf ${sparqlEscapeUri(task.parentJob.uri)} ;
-    task:operation ${sparqlEscapeUri(task.operation)} ;
-    dcterms:created ${now} ;
-    dcterms:modified ${now} ;
-    cogs:dependsOn ${sparqlEscapeUri(task.dependsOn)} ;
-    adms:status ${sparqlEscapeUri(STATUS.SCHEDULED)} ;
-    task:index ${sparqlEscapeString(task.index.toString())} ;
-    task:inputContainer ${sparqlEscapeUri(task.target.uri)} .
+        ${inputContainerToTriples(task.input)}
+      }
+    }`;
 
-    ${inputContainerToTriples(task.target)}
-  `;
-
-  return triples;
+  try {
+    await update(insert);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (e: any) {
+    throw new Error(`${e.message}\n\nQuery that caused error:\n${insert}`, {
+      cause: e,
+    });
+  }
 }
 
 function inputContainerToTriples(container: InputContainer) {
@@ -263,21 +238,19 @@ function inputContainerToTriples(container: InputContainer) {
   }
 }
 
-async function insertTasks(...tasks: Task[]) {
-  const triplesToInsert = tasks.map((task) => taskToTriples(task)).join("\n");
-
-  const insert = `PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-    PREFIX dcterms: <http://purl.org/dc/terms/>
-    PREFIX nfo: <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#>
-    PREFIX adms: <http://www.w3.org/ns/adms#>
-    PREFIX cogs: <http://vocab.deri.ie/cogs#>
-    PREFIX hrvst: <http://lblod.data.gift/vocabularies/harvesting/>
-    PREFIX nfo: <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#>
-    PREFIX nie: <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#>
-    INSERT DATA {
+async function linkOtherInputContainers(inputTask: Task, outputTask: Task) {
+  const insert = `${SPARQL_PREFIXES}
+    INSERT {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
-        ${triplesToInsert}
+        ${sparqlEscapeUri(outputTask.uri)} task:inputContainer ?inputContainer .
+      }
+    } WHERE {
+      GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
+        VALUES ?inputTask {
+          ${sparqlEscapeUri(inputTask.uri)}
+        }
+        ?inputTask task:inputContainer ?inputContainer .
+          FILTER (?inputContainer != ${sparqlEscapeUri(inputTask.input.uri)})
       }
     }`;
 
@@ -291,27 +264,62 @@ async function insertTasks(...tasks: Task[]) {
   }
 }
 
+export async function insertTasks(inputTask: Task, outputTasks: Task[]) {
+  for (const outputTask of outputTasks) {
+    // 1. Insert new task
+    await insertTask(outputTask);
+    // 2. Link additional input containers
+    await linkOtherInputContainers(inputTask, outputTask);
+    // 3. Update status task to scheduled so it can be picked up
+    await updateTaskStatus(outputTask.uri, STATUS.SCHEDULED);
+
+    // shortly sleep to avoid overloading triplestore
+    sleep();
+  }
+
+  await updateTaskStatus(inputTask.uri, STATUS.SUCCESS);
+  console.info(`\n>> INFO: Completed task ${inputTask.uri}`);
+}
+
 async function sleep() {
-  if (SLEEP_BETWEEN_BATCHES > 0) {
-    console.info(`>> INFO: Sleeping for ${SLEEP_BETWEEN_BATCHES} ms.`);
-    return new Promise((resolve) => setTimeout(resolve, SLEEP_BETWEEN_BATCHES));
+  if (SLEEP_BETWEEN_TASKS > 0) {
+    console.info(`>> INFO: Sleeping for ${SLEEP_BETWEEN_TASKS} ms.`);
+    return new Promise((resolve) => setTimeout(resolve, SLEEP_BETWEEN_TASKS));
   }
 }
 
-export async function updateTaskStatus(taskUri: string, newStatus: string) {
+export async function updateTaskStatus(
+  taskUri: string,
+  newStatus: string,
+  errorMsg?: string,
+) {
   const now = sparqlEscapeDateTime(new Date());
-  const insert = `PREFIX adms: <http://www.w3.org/ns/adms#>
-    PREFIX dcterms: <http://purl.org/dc/terms/>
+
+  let error = "";
+  if (errorMsg && newStatus === STATUS.FAILED) {
+    const errorUuid = uuid();
+    const errorUri = DEFAULT_BASE_URI.ERROR + errorUuid;
+    error = `?task task:error ${sparqlEscapeUri(errorUri)} .
+      ${sparqlEscapeUri(errorUri)} a oslc:Error ;
+                                   mu:uuid ${sparqlEscapeString(errorUuid)} ;
+                                   oslc:message ${sparqlEscapeString(errorMsg)} .`;
+  }
+
+  const insert = `${SPARQL_PREFIXES}
     DELETE {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
         ?task adms:status ?status ;
               dcterms:modified ?modified .
+        ?job dcterms:modified ?jobModified .
       }
     }
     INSERT {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
         ?task adms:status ${sparqlEscapeUri(newStatus)} ;
               dcterms:modified ${now} .
+        ${error}
+
+        ?job dcterms:modified ${now} .
       }
     }
     WHERE {
@@ -319,8 +327,10 @@ export async function updateTaskStatus(taskUri: string, newStatus: string) {
         VALUES ?task {
           ${sparqlEscapeUri(taskUri)}
         }
-        ?task adms:status ?status .
+        ?task adms:status ?status ;
+              dcterms:isPartOf ?job .
         OPTIONAL { ?task dcterms:modified ?modified . }
+        OPTIONAL { ?job dcterms:modified ?jobModified . }
       }
     }`;
   try {
@@ -335,12 +345,11 @@ export async function updateTaskStatus(taskUri: string, newStatus: string) {
 
 export async function completeJob(task: Task) {
   const now = sparqlEscapeDateTime(new Date());
-  const insert = `PREFIX adms: <http://www.w3.org/ns/adms#>
-    PREFIX dcterms: <http://purl.org/dc/terms/>
+  const insert = `${SPARQL_PREFIXES}
     DELETE {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
         ?job adms:status ?status ;
-              dcterms:modified ?modified .
+             dcterms:modified ?modified .
       }
     }
     INSERT {
@@ -373,16 +382,14 @@ export async function findOpenTaskUris() {
   const targetOperations = getTaskOperations();
   const safeTargetOpsValues = targetOperations.map(sparqlEscapeUri).join("\n");
 
-  const result = await query(`PREFIX adms: <http://www.w3.org/ns/adms#>
-    PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
+  const result = await query(`${SPARQL_PREFIXES}
     SELECT DISTINCT ?task WHERE {
       VALUES ?operation {
         ${safeTargetOpsValues}
       }
       ?task adms:status ${sparqlEscapeUri(STATUS.SCHEDULED)} ;
             task:operation ?operation .
-  }
-`);
+  }`);
 
   return result?.results.bindings?.map((b) => b.task.value) || [];
 }
@@ -390,9 +397,7 @@ export async function findOpenTaskUris() {
 export async function failBusyTasks() {
   const targetOperations = getTaskOperations();
   const safeTargetOpsValues = targetOperations.map(sparqlEscapeUri).join("\n");
-  await update(`PREFIX adms: <http://www.w3.org/ns/adms#>
-    PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
-    PREFIX dcterms: <http://purl.org/dc/terms/>
+  await update(`${SPARQL_PREFIXES}
     DELETE {
       GRAPH ${sparqlEscapeUri(JOB_GRAPH)} {
         ?task adms:status ${sparqlEscapeUri(STATUS.BUSY)} ;

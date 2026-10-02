@@ -2,9 +2,9 @@ import bodyParser from "body-parser";
 import { app, errorHandler } from "mu";
 import { processTask } from "./lib/task";
 import {
-  batchedInsertTasks,
   failBusyTasks,
   findOpenTaskUris,
+  insertTasks,
   retrieveTaskData,
   updateTaskStatus,
 } from "./lib/queries";
@@ -71,8 +71,13 @@ async function unsafeHandleOpenTasks() {
       inputTasks.push(task);
       await updateTaskStatus(taskUri, STATUS.BUSY);
     } else {
-      console.info(
-        `\n>> INFO: Ignoring task ${taskUri} as its resource does not match a configured task`,
+      console.log(
+        `\n>> INFO: ${taskUri} is not a task resource or a task resource without a correct target shape in an input container`,
+      );
+      await updateTaskStatus(
+        taskUri,
+        STATUS.FAILED,
+        "Not a resource task or a task resource without a correct target shape in an input container",
       );
     }
   }
@@ -82,17 +87,16 @@ async function unsafeHandleOpenTasks() {
       return { inputTask: task, outputTasks: await processTask(task) };
     }),
   );
+
   await Promise.all(
     outputTasks.map((tasks) => {
-      return batchedInsertTasks(tasks.inputTask, tasks.outputTasks).catch(
-        (error) => {
-          console.log(
-            `\n>> ERROR: Something went wrong while inserting tasks for ${tasks.inputTask.uri}`,
-          );
-          console.error(error);
-          throw error;
-        },
-      );
+      return insertTasks(tasks.inputTask, tasks.outputTasks).catch((error) => {
+        console.log(
+          `\n>> ERROR: Something went wrong while inserting tasks for ${tasks.inputTask.uri}`,
+        );
+        console.error(error);
+        throw error;
+      });
     }),
   );
 

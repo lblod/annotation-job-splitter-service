@@ -1,5 +1,3 @@
-import config from "../config/config";
-
 export const JOB_GRAPH =
   process.env.JOB_GRAPH || "http://mu.semte.ch/graphs/harvesting";
 
@@ -14,27 +12,28 @@ export const STATUS = {
 export const DEFAULT_BASE_URI = {
   HARVEST_COLLECTION: "http://lblod.data.gift/id/harvest-collections/",
   REMOTE_DATA_OBJECT: "http://lblod.data.gift/id/remote-data-objects/",
+  ERROR: "http://redpencil.data.gift/id/jobs/error/",
 };
 
-const DEFAULT_PREDICATES = {
-  TARGET_SHAPE: "http://mu.semte.ch/vocabularies/ext/shapeForTargets",
-  TARGET_GRAPH: "http://mu.semte.ch/vocabularies/ext/graphForTargets",
-};
-
-export const TARGET_SHAPE_PREDICATE =
-  config["targetShapePredicate"] || DEFAULT_PREDICATES.TARGET_SHAPE;
-
-export const TARGET_GRAPH_PREDICATE =
-  config["targetGraphPredicate"] || DEFAULT_PREDICATES.TARGET_GRAPH;
-
-export const BATCH_SIZE = parseInt(process.env.BATCH_SIZE || "120");
-export const SLEEP_BETWEEN_BATCHES = parseInt(
-  process.env.SLEEP_BETWEEN_BATCHES || "1000",
+export const SLEEP_BETWEEN_TASKS = parseInt(
+  process.env.SLEEP_BETWEEN_TASKS || "1000",
 );
-// NOTE (20/04/2026): For consistency with other services we opted to use
-// `BATCH_SIZE` as environment variable to specify the maximum number of
-// triples to insert at once.  Per task 12 triples (9 for the task resource, 3
-// for the input container) will be inserted.  The following uses this to
-// split the received tasks into smaller batches thereby ensuring each task is
-// fully contained within a single batch so we do not insert incomplete tasks.
-export const TASKS_PER_BATCH = Math.ceil(BATCH_SIZE / 12);
+
+const PREFIXES = {
+  adms: "http://www.w3.org/ns/adms#",
+  cogs: "http://vocab.deri.ie/cogs#",
+  dcterms: "http://purl.org/dc/terms/",
+  hrvst: "http://lblod.data.gift/vocabularies/harvesting/",
+  mu: "http://mu.semte.ch/vocabularies/core/",
+  nfo: "http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#",
+  nie: "http://www.semanticdesktop.org/ontologies/2007/01/19/nie#",
+  oslc: "http://open-services.net/ns/core#",
+  sh: "http://www.w3.org/ns/shacl#",
+  task: "http://redpencil.data.gift/vocabularies/tasks/",
+};
+
+export const SPARQL_PREFIXES = (() => {
+  const all = [];
+  for (const key in PREFIXES) all.push(`PREFIX ${key}: <${PREFIXES[key]}>`);
+  return all.join("\n");
+})();

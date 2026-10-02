@@ -1,7 +1,11 @@
-import { Job, Task, TaskConfiguration } from "../types";
 import { uuid } from "mu";
-import { completeJob, retrieveResourcesFromGraph } from "./queries";
+import { Task, TaskConfiguration } from "../types";
 import { getTaskConfiguration } from "../util/config";
+import {
+  completeJob,
+  retrieveResourcesFromGraph,
+  retrieveTargetShape,
+} from "./queries";
 
 const RESOURCE_BASE = {
   TASK: "http://redpencil.data.gift/id/task/",
@@ -13,7 +17,7 @@ export async function processTask(task: Task) {
   if (taskConfiguration) {
     const nextIndex = task.index + 1;
 
-    const targets = await listTargets(task.parentJob, taskConfiguration);
+    const targets = await listTargets(task, taskConfiguration);
     if (targets.length === 0) {
       await completeJob(task);
     }
@@ -33,36 +37,38 @@ export async function processTask(task: Task) {
   }
 }
 
-async function listTargets(job: Job, taskConfiguration: TaskConfiguration) {
-  const shape = job.targetShape;
+async function listTargets(task: Task, taskConfiguration: TaskConfiguration) {
+  const shape = await retrieveTargetShape(task.input.resource);
 
-  let targets: string[];
-  // NOTE (18/04/2026): This assumes that it is not meaningful to specify both a
-  // `targetClass` as well as `targetNodes`.  Should both be specified, the
-  // `targetNodes` will simply be ignored.
-  if (shape.targetClass) {
-    // NOTE (22/04/2026): This assumes that a target graph is always specified.
-    // Otherwise, the called function will fail trying to escape an undefined
-    // graph URI.
-    targets = await retrieveResourcesFromGraph(
-      shape.targetClass,
-      job.uri,
-      job.targetGraph,
-      taskConfiguration,
-    );
-  } else if (shape.targetNodes) {
-    targets = shape.targetNodes;
+  if (shape) {
+    let targets: string[];
+    // NOTE (18/04/2026): This assumes that it is not meaningful to specify both a
+    // `targetClass` as well as `targetNodes`.  Should both be specified, the
+    // `targetNodes` will simply be ignored.
+    if (shape.targetClass) {
+      // NOTE (22/04/2026): This assumes that a target graph is always specified.
+      // Otherwise, the called function will fail trying to escape an undefined
+      // graph URI.
+      targets = await retrieveResourcesFromGraph(
+        shape.targetClass,
+        task.input.targetGraph,
+        taskConfiguration,
+        task.uri,
+      );
+    } else {
+      targets = shape.targetNodes;
+    }
+
+    return targets;
   } else {
     throw new Error(
-      `Misconfigured target shape, either targetClass or targetNodes is required`,
+      `Incorrect target shape ${task.input.resource}, either targetClass or targetNodes is required`,
     );
   }
-
-  return targets;
 }
 
 function createTask(
-  parentJob: Job,
+  parentJob: string,
   target: string,
   index: number,
   dependsOn: string,
@@ -77,14 +83,14 @@ function createTask(
       parentJob: parentJob,
       operation: taskConfiguration.nextOperation,
       dependsOn: dependsOn,
-      target: createInputContainer(
+      input: createInputContainer(
         target,
         taskConfiguration.harvestingCollection,
       ),
     } as Task;
   } else {
     throw new Error(
-      `Could not create task for job ${parentJob.uri} with task operation ${taskConfiguration.nextOperation} due to missing target.`,
+      `Could not create task for job ${parentJob} with task operation ${taskConfiguration.nextOperation} due to missing target.`,
     );
   }
 }
