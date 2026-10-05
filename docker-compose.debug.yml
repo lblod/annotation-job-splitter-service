@@ -1,5 +1,5 @@
 services:
-  annotation-job-splitter:
+  task-splitter:
     #build: ./
     image: semtech/mu-javascript-template:1.9.1
     restart: no

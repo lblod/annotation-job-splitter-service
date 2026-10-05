@@ -1,5 +1,5 @@
 {
-  "name": "annotation-job-splitter-service",
+  "name": "task-splitter-service",
   "version": "0.0.10",
   "description": "A service that splits tasks into multiple tasks, one per target resource, that can run in parallel.",
   "license": "MIT",

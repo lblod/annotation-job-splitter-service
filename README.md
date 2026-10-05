@@ -1,9 +1,9 @@
-# Annotation job splitter service
+# Task splitter service
 
 > [!Warning]
 > This service is currently under construction
 
-The annotation job splitter service offers functionality to split a task into multiple tasks depending on the resource(s) serving as target. This service operates on delta message it expects to receive when the status of a possibly relevant task changes.
+The task splitter service offers functionality to split a task into multiple tasks depending on the resource(s) serving as target. This service operates on delta message it expects to receive when the status of a possibly relevant task changes.
 
 ## Data model
 In order to be able to process tasks correctly, this service expects that the contents of a task's input container adheres to a given data model. More specifically, a the input container has to link to a SHACL node shape describing its input resources. This node shape either explicitly links to one or more resources, or specifies an RDF type of resources to query for. In the latter case a graph **must** also be specified in which to search for appropriate resources.
@@ -52,11 +52,11 @@ In the second snippet below, the node shape linked to the task's target shape sp
 First, add the service to your application's `docker-compose.yml`. Note that the `config` volume is only necessary if you require a different configuration than the [default one](./config/config.ts). See the [configuration section](#configuration) for more information in writing a configuration file.
 
 ```yaml
-  annotation-job-splitter:
-    image: lblod/annotation-job-splitter-service:x.y.z
+  task-splitter:
+    image: lblod/task-splitter-service:x.y.z
     # Optional volume for custom configuration
     volumes:
-      - ../config/annotation-job-splitter:/config
+      - ../config/task-splitter:/config
 ```
 
 Second, configure your application's [delta notifier](https://github.com/mu-semtech/delta-notifier/blob/master/README.md#L87) to forward the appropriate delta messages to this service. The simplest configuration would be to forward a delta message each time an `adms:status` is set to the `scheduled` status used for tasks:
@@ -77,7 +77,7 @@ export default [
     },
     callback: {
       method: "POST",
-      url: "http://annotation-job-splitter/delta",
+      url: "http://task-splitter/delta",
     },
     options: {
       resourceFormat: "v0.0.1", // Make sure to use this format, v0.0.0-genesis is NOT suported
