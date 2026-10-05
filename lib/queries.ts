@@ -60,8 +60,10 @@ function parseResult<T extends string[]>(result: SPARQLQueryResult<T>) {
 
 export async function retrieveTaskData(uri: string) {
   // NOTE (28/09/2026): The UNION clause in this query already checks whether a
-  // valid shape is linked in the input container of the task.  This avoids we
-  // create tasks that will be thrown away in a later step anyway.
+  // valid shape is linked in the input container of the task.  This allows to
+  // detect invalid tasks and failing them early on.  Otherwise, we would
+  // continue processing data for a task (object) that will later on when trying
+  // the retrieve the target shape.
   const taskDataRaw = await query(`${SPARQL_PREFIXES}
       SELECT DISTINCT ?task ?index ?operation ?inputContainer ?targetShape ?targetGraph ?job
       WHERE {
