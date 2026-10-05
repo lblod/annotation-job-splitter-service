@@ -1,6 +1,6 @@
 steps:
   lint:
-    image: node:18-alpine
+    image: node:20-bookworm
     commands:
       - npm ci
       - npm run lint:js
