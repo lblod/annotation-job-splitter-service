@@ -63,7 +63,7 @@ export async function retrieveTaskData(uri: string) {
   // valid shape is linked in the input container of the task.  This avoids we
   // create tasks that will be thrown away in a later step anyway.
   const taskDataRaw = await query(`${SPARQL_PREFIXES}
-      SELECT DISTINCT ?task ?index ?operation ?inputContainer ?targetShape ?targetGraph ?job ?jobOperation
+      SELECT DISTINCT ?task ?index ?operation ?inputContainer ?targetShape ?targetGraph ?job
       WHERE {
         VALUES ?task {
           ${sparqlEscapeUri(uri)}
