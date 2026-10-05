@@ -90,13 +90,11 @@ export async function retrieveTaskData(uri: string) {
   const taskData = parseResult(taskDataRaw!)[0];
 
   if (taskData) {
-    const inputContainer = taskData?.inputContainer
-      ? ({
-          uri: taskData.inputContainer,
-          resource: taskData.targetShape,
-          targetGraph: taskData.targetGraph,
-        } as InputContainer)
-      : undefined;
+    const inputContainer = {
+      uri: taskData.inputContainer,
+      resource: taskData.targetShape,
+      targetGraph: taskData.targetGraph,
+    } as InputContainer;
 
     const task = {
       uri: uri,
