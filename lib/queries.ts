@@ -62,7 +62,7 @@ export async function retrieveTaskData(uri: string) {
   // NOTE (28/09/2026): The UNION clause in this query already checks whether a
   // valid shape is linked in the input container of the task.  This avoids we
   // create tasks that will be thrown away in a later step anyway.
-  const data = await query(`${SPARQL_PREFIXES}
+  const taskDataRaw = await query(`${SPARQL_PREFIXES}
       SELECT DISTINCT ?task ?index ?operation ?inputContainer ?targetShape ?targetGraph ?job ?jobOperation
       WHERE {
         VALUES ?task {
@@ -85,22 +85,22 @@ export async function retrieveTaskData(uri: string) {
         }
       }`);
 
-  const parsedData = parseResult(data!)[0];
+  const taskData = parseResult(taskDataRaw!)[0];
 
-  if (parsedData) {
-    const inputContainer = parsedData?.inputContainer
+  if (taskData) {
+    const inputContainer = taskData?.inputContainer
       ? ({
-          uri: parsedData.inputContainer,
-          resource: parsedData.targetShape,
-          targetGraph: parsedData.targetGraph,
+          uri: taskData.inputContainer,
+          resource: taskData.targetShape,
+          targetGraph: taskData.targetGraph,
         } as InputContainer)
       : undefined;
 
     const task = {
       uri: uri,
-      index: parseInt(parsedData.index),
-      parentJob: parsedData.job,
-      operation: parsedData.operation,
+      index: parseInt(taskData.index),
+      parentJob: taskData.job,
+      operation: taskData.operation,
       input: inputContainer,
     } as Task;
 
