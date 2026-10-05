@@ -188,4 +188,5 @@ The service will respond with a `200` if it successfully received the delta and 
 
 ## Caveats
 - This service expects the jobs and tasks to be stored in single graph.
+- This service expects tasks to have exactly one input container with a valid target shape. It a task has multiple input containers with a valid target shape, the behaviour will be unpredictable and depend on which the order of the results returns by the triplestore.
 - Any additional input containers linked to an incoming task that do not contain a target shape will be linked to each created task. The service that processes the created tasks is responsible properly handle that multiple tasks have the same input containers.
