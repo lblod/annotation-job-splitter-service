@@ -274,7 +274,7 @@ export async function insertTasks(inputTask: Task, outputTasks: Task[]) {
     await updateTaskStatus(outputTask.uri, STATUS.SCHEDULED);
 
     // shortly sleep to avoid overloading triplestore
-    sleep();
+    await sleep();
   }
 
   await updateTaskStatus(inputTask.uri, STATUS.SUCCESS);
