@@ -1,6 +1,6 @@
 {
   "name": "task-splitter-service",
-  "version": "0.0.10",
+  "version": "1.0.0",
   "description": "A service that splits tasks into multiple tasks, one per target resource, that can run in parallel.",
   "license": "MIT",
   "author": "info@redpencil.io",

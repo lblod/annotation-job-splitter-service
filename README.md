@@ -1,8 +1,5 @@
 # Task splitter service
 
-> [!Warning]
-> This service is currently under construction
-
 The task splitter service offers functionality to split a task into multiple tasks depending on the resource(s) serving as target. This service operates on delta message it expects to receive when the status of a possibly relevant task changes.
 
 ## Data model
